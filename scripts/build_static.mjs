@@ -1,7 +1,10 @@
 // Build sem framework: somente a interface vai para o deploy, não os vídeos,
 // modelos, código Python nem resultados de usuários.
 import {mkdir, copyFile, writeFile} from 'node:fs/promises';
-const url=(process.env.SHORTFORGE_PUBLIC_API_URL || '').trim().replace(/\/$/, '');
+// Endereço público do backend dedicado. A variável de ambiente, quando
+// definida, tem prioridade. Nenhuma credencial é incluída neste arquivo.
+const DEFAULT_API_URL='https://backend-short-clips.vercel.app';
+const url=(process.env.SHORTFORGE_PUBLIC_API_URL || DEFAULT_API_URL).trim().replace(/\/$/, '');
 if(url && (!/^https:\/\//.test(url) || new URL(url).pathname !== '/')){
   throw new Error('SHORTFORGE_PUBLIC_API_URL precisa ser uma URL HTTPS na raiz do domínio.');
 }
