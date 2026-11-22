@@ -26,6 +26,13 @@
       <input class="linkInput" id="backendAccessKey" type="password" placeholder="Chave do seu backend" autocomplete="off" style="width:100%">
       <p class="disclaimer">Esta chave é mantida somente nesta aba; não coloque chaves do servidor em variáveis públicas da Vercel.</p>
       <p id="backendStatus" role="status"></p>
+      <div id="usagePanel" hidden aria-label="Consumo do motor de vídeos" style="margin-top:20px;padding-top:16px;border-top:1px solid #4c5d4e">
+        <h3 style="font-size:15px;margin:0 0 8px">Consumo do Sandbox (Hobby)</h3>
+        <p id="usageJobs" style="font-size:14px"></p>
+        <p id="usageEstimate" style="font-size:13px;color:#a7b7a8"></p>
+        <p class="hint">Medição estimada e contagem registrada pelo ShortForge; confira os valores reais na Vercel.</p>
+        <a href="https://vercel.com/murilo15/~/usage" target="_blank" rel="noopener noreferrer">Consultar consumo oficial da Vercel ↗</a>
+      </div>
     </section>
     <section class="hero">
       <div>
