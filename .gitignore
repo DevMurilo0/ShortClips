@@ -3,3 +3,12 @@ resultados/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Vercel, segredos e build
+.env
+.env.*
+!.env.example
+.vercel/
+public/
+backend_vercel/.vercel/
+*.log

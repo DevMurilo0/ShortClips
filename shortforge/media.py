@@ -314,57 +314,90 @@ def validate_srt(path:Path, duration=None):
 
 
 def make_srt(model, video:Path, target:Path, notify, language='pt') -> int:
-    notify('Reconhecendo fala em português e criando legendas com tempos por palavra...')
+    """Legendas mobile: 2–5 palavras por tela, mantendo o tempo do Whisper."""
+    notify('Reconhecendo fala e sincronizando legendas curtas por palavra...')
     duration=ffprobe(video)['duration']
-    segments,info=model.transcribe(str(video),language=language,vad_filter=True,beam_size=3,
-                                   word_timestamps=True,condition_on_previous_text=False)
+    segments,info=model.transcribe(
+        str(video),language=language,vad_filter=True,beam_size=5,
+        word_timestamps=True,condition_on_previous_text=False,
+        initial_prompt='Transcrição fiel em português brasileiro, com pontuação natural.'
+    )
     cues=[]; previous=0.
+
     def add(start,end,text):
         nonlocal previous
-        start=max(previous,0.,float(start)); end=min(duration,float(end))
-        if end-start<.08 or not text.strip(): return
-        # Wrap visible characters before escaping SRT markup. Limit every card
-        # to two lines, including exceptionally long single words.
+        start=max(previous,0.,float(start));end=min(duration,float(end))
+        if end-start < .08 or not text.strip():
+            return
+        # Não permitir que caracteres interpretados como marcação ASS alterem
+        # a renderização. Preferir frases pequenas e no máximo duas linhas.
         text=text.replace('\\','／').replace('{','｛').replace('}','｝')
-        lines=textwrap.wrap(text,width=28,break_long_words=True,break_on_hyphens=False)
+        lines=textwrap.wrap(text,width=26,break_long_words=True,break_on_hyphens=False)
         cards=[lines[i:i+2] for i in range(0,len(lines),2)]
         total=sum(len(''.join(card)) for card in cards) or 1
         elapsed=start
         for index,card in enumerate(cards):
             ending=end if index==len(cards)-1 else elapsed+(end-start)*len(''.join(card))/total
-            if ending-elapsed>=.08:
+            if ending-elapsed >= .08:
                 cues.append((elapsed,ending,'\n'.join(html.escape(line) for line in card)))
                 previous=ending
             elapsed=ending
+
     for item in segments:
         check_cancelled()
         words=getattr(item,'words',None)
         if words:
-            group=[]; start=0.; end=0.
+            group=[];start=0.;end=0.
             for word in words:
-                token=word.word.strip()
-                if not token: continue
-                if group and (len(' '.join(group+[token]))>52 or word.end-start>4.5):
-                    add(start,end,' '.join(group)); group=[]
-                if not group: start=word.start
-                group.append(token); end=word.end
-                if token.endswith(('.', '?', '!')):
-                    add(start,end,' '.join(group)); group=[]
-            if group: add(start,end,' '.join(group))
+                token=str(word.word).strip()
+                if not token:
+                    continue
+                try:
+                    ws,we=float(word.start),float(word.end)
+                except (ValueError,TypeError):
+                    continue
+                if not math.isfinite(ws) or not math.isfinite(we) or we<=ws:
+                    continue
+                preview=' '.join(group+[token])
+                # Ritmo de Shorts: legenda curta, sem texto cobrindo a gameplay.
+                if group and (len(group)>=5 or len(preview)>34 or
+                              we-start>2.8 or ws-end>.42):
+                    add(start,end,' '.join(group))
+                    group=[]
+                if not group:
+                    start=ws
+                group.append(token);end=we
+                if token.endswith(('.', '?', '!')) or (len(group)>=3 and we-start>=2.4):
+                    add(start,end,' '.join(group))
+                    group=[]
+            if group:
+                add(start,end,' '.join(group))
         else:
-            text=' '.join(item.text.split())
-            # Fallback for models without word timing, explicitly proportional.
-            parts=textwrap.wrap(text,52,break_long_words=True,break_on_hyphens=False)
-            elapsed=item.start; total=sum(map(len,parts)) or 1
-            for part in parts:
-                ending=elapsed+(item.end-item.start)*len(part)/total
-                add(elapsed,ending,part); elapsed=ending
+            # Fallback para modelos sem timestamps: distribuição proporcional
+            # por caracteres; nunca fingir sincronização palavra a palavra.
+            text=' '.join(str(item.text).split())
+            tokens=text.split()
+            chunks=[];chunk=[]
+            for token in tokens:
+                if chunk and (len(chunk)>=5 or len(' '.join(chunk+[token]))>34):
+                    chunks.append(' '.join(chunk));chunk=[]
+                chunk.append(token)
+            if chunk:
+                chunks.append(' '.join(chunk))
+            elapsed=float(item.start)
+            total=sum(len(c) for c in chunks) or 1
+            for chunk in chunks:
+                ending=elapsed+(float(item.end)-float(item.start))*len(chunk)/total
+                add(elapsed,ending,chunk)
+                elapsed=ending
     if not cues:
         raise RuntimeError('A transcrição não encontrou fala. Nenhum Short sem legendas será entregue como pronto.')
     target.parent.mkdir(parents=True,exist_ok=True)
     temporary=target.with_suffix('.srt.tmp')
-    temporary.write_text(''.join(f'{i}\n{srt_time(a)} --> {srt_time(b)}\n{text}\n\n'
-                                for i,(a,b,text) in enumerate(cues,1)),encoding='utf-8')
+    temporary.write_text(''.join(
+        f'{i}\n{srt_time(a)} --> {srt_time(b)}\n{text}\n\n'
+        for i,(a,b,text) in enumerate(cues,1)
+    ),encoding='utf-8')
     validate_srt(temporary,duration)
     temporary.replace(target)
     return len(cues)
@@ -382,9 +415,9 @@ def build_filters(face_box, width):
             f'[blur][game]overlay=(W-w)/2:(H-h)/2,setsar=1[bottom];')
     return (f'[0:v]setpts=PTS-STARTPTS,split=2[a][b];[a]{top}[top];'+bottom+
             '[top][bottom]vstack=inputs=2[stack];'
-            "[stack]subtitles=filename=captions.srt:charenc=UTF-8:force_style='FontName=DejaVu Sans,"
-            "FontSize=17,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,"
-            "Shadow=0,BorderStyle=1,Alignment=2,MarginV=16,MarginL=14,MarginR=14',format=yuv420p[v]")
+            "[stack]subtitles=filename=captions.srt:charenc=UTF-8:force_style='FontName=DejaVu Sans,Bold=1,"
+            f"FontSize={24 if width==720 else 28},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=3,"
+            f"Shadow=1,BorderStyle=1,Alignment=2,MarginV={40 if width==720 else 56},MarginL=22,MarginR=22',format=yuv420p[v]")
 
 
 def validate_output(path:Path, width=None, decode=True):

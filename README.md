@@ -123,4 +123,54 @@ Com o servidor aberto, o teste real (faz download e processamento) é:
 As evidências desta investigação ficam em `validation/`. A seleção por áudio considera energia, variação e pausas próximas ao início; ela não identifica com certeza menus, continuidade narrativa ou frases completas. Uma verificação visual posterior rejeita imagens praticamente estáticas e molduras persistentes de vídeo inserido/TV, tentando candidatos de reserva distintos. Isso reduz alguns falsos destaques, mas não substitui entendimento semântico da cena. O alvo é 45 segundos e os intervalos selecionados não se sobrepõem. Sem dados suficientes, o programa entrega menos cortes e informa resultado parcial.
 
 A verificação de menus usa OCR local com Tesseract e um modelo português de aproximadamente 2 MB, baixado do projeto oficial `tesseract-ocr/tessdata_fast` e verificado por SHA-256. O modelo fica em `modelos/tessdata/por.traineddata`; as imagens analisadas permanecem locais. Cabeçalhos de configurações/mapa e controles de celular no rodapé em 20% ou mais das amostras levam à escolha de outro candidato. Isso é uma heurística e pode deixar de reconhecer interfaces de outros jogos/idiomas. O manifesto do modelo identifica origem, revisão e licença.
-# ShortClips
+
+## Melhorias de seleção e legendas (branch smart-clips)
+
+A seleção continua sendo uma **heurística**, não um modelo semântico que assiste
+ao vídeo inteiro. Agora a classificação avalia **toda a janela de 30–60 s**,
+compara sua intensidade média aos picos do próprio trecho, penaliza cortes em
+fronteiras muito barulhentas e incentiva variedade ao longo de vídeos extensos.
+O gráfico real "Mais reproduzido", quando disponível, ainda tem prioridade.
+A verificação por OCR e movimento descarta trechos suspeitos de menus e pausas.
+
+O Faster-Whisper continua gerando timestamps por palavra, mas as legendas são
+organizadas em cartões curtos (aproximadamente 2–5 palavras), com quebra de
+linha controlada, letras mais legíveis e contorno mais forte. Não há promessa
+de transcrição perfeita: nomes e falas sobrepostas exigem revisão humana.
+
+## Publicação da interface na Vercel
+
+**A Vercel hospeda somente a interface HTML/CSS/JS.** O Python, FFmpeg, yt-dlp,
+OpenCV e Whisper **não rodam apenas em um `index.html`**, e o motor de vídeo
+não cabe no padrão de funções serverless curtas. Publicar esta branch na
+Vercel disponibiliza um site público, mas **a geração de Shorts só funciona
+quando uma API de processamento separada estiver implantada e conectada**.
+
+1. Na Vercel, importe `DevMurilo0/ShortClips` e escolha a branch desejada.
+2. Mantenha o framework como **Other**, o build `node scripts/build_static.mjs`
+   e o diretório de saída `public`. O `vercel.json` já define isso.
+3. Opcionalmente, configure `SHORTFORGE_PUBLIC_API_URL=https://api.seudominio.com`
+   nas variáveis de ambiente da Vercel (endereço **público**, nunca token).
+4. Sem API implantada, a página exibe o painel "Conectar o motor de processamento"
+   e desabilita geração; não exibe resultados fictícios.
+
+Para testar o build em sua máquina: `node scripts/build_static.mjs`.
+Serão produzidos `public/index.html`, `public/style.css`,
+`public/app.js` e `public/config.js`.
+
+### Backend remoto separado
+
+O backend Python para Vercel agora é um projeto **independente** chamado
+`BackendShortClips`. Não deve ficar dentro deste repositório. Enquanto o
+repositório separado não tiver sido criado e implantado, a interface pública
+mostra o painel para conectar a API e não gera arquivos automaticamente.
+
+No frontend, defina `SHORTFORGE_PUBLIC_API_URL` como a URL HTTPS do backend
+publicado na Vercel (sem barra final), ou informe-a manualmente no painel.
+O endereço de API não é segredo. Já as chaves reais de acesso pertencem às
+variáveis privadas do projeto de backend, nunca ao JavaScript estático.
+
+**A API de controle não renderiza vídeos em Vercel Functions.** Também
+precisará de worker persistente, armazenamento de MP4, controle de acesso e
+limites para uso público.
+
