@@ -18,7 +18,8 @@ from shortforge.pipeline import Job, execute, validate_url, validate_manual_box,
 
 ROOT=Path(__file__).resolve().parent
 OUT=ROOT/'resultados'
-HOST='127.0.0.1'
+HOST=os.getenv('SHORTFORGE_HOST','127.0.0.1')
+ALLOWED_ORIGINS={v.strip().rstrip('/') for v in os.getenv('SHORTFORGE_ALLOWED_ORIGINS','').split(',') if v.strip()}
 PORT=8765
 JOBS={}
 WORKERS={}
@@ -36,6 +37,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control','no-store')
         self.send_header('X-Content-Type-Options','nosniff')
         if length is not None: self.send_header('Content-Length',str(length))
+        origin=self.headers.get('Origin','').rstrip('/')
+        if origin and origin in ALLOWED_ORIGINS:
+            self.send_header('Access-Control-Allow-Origin',origin)
+            self.send_header('Vary','Origin')
         for k,v in (extra or {}).items(): self.send_header(k,v)
         self.end_headers()
 
@@ -55,8 +60,14 @@ class Handler(BaseHTTPRequestHandler):
         p=urlparse(self.path).path
         if p in ('/','/index.html'):
             return self._asset(ROOT/'web'/'index.html')
-        if p in ('/static/style.css','/static/app.js'):
+        if p in ('/static/style.css','/static/app.js','/style.css','/app.js'):
             return self._asset(ROOT/'web'/p.rsplit('/',1)[-1])
+        if p=='/config.js':
+            raw=('window.SHORTFORGE_API_URL='+json.dumps(os.getenv('SHORTFORGE_API_URL',''))+';').encode('utf-8')
+            self._headers(content_type='text/javascript; charset=utf-8',length=len(raw))
+            return self.wfile.write(raw)
+        if p=='/api/health':
+            return self._json({'ok':True,'service':'ShortForge Local'})
         if p=='/api/jobs/latest':
             with JOBS_LOCK:
                 job=next(reversed(JOBS.values()),None) if JOBS else None
@@ -95,9 +106,17 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json({'error':'Página não encontrada'},404)
 
+    def do_OPTIONS(self):
+        origin=self.headers.get('Origin','').rstrip('/')
+        if origin not in ALLOWED_ORIGINS:
+            return self._json({'error':'Origem não permitida.'},403)
+        self._headers(204,length=0,extra={'Access-Control-Allow-Methods':'GET, POST, OPTIONS',
+                                         'Access-Control-Allow-Headers':'Content-Type'})
+
     def do_POST(self):
-        origin=self.headers.get('Origin')
-        if origin and origin!=f'http://{self.headers.get("Host")}':
+        origin=self.headers.get('Origin','').rstrip('/')
+        same_origin=f'http://{self.headers.get("Host")}'
+        if origin and origin!=same_origin and origin not in ALLOWED_ORIGINS:
             return self._json({'error':'Origem não permitida.'},403)
         route=urlparse(self.path).path
         if route!='/api/jobs' and not re.fullmatch(r'/api/jobs/[a-f0-9]+/(?:cancel|retry)',route):
