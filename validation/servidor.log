@@ -1,0 +1,26 @@
+
+============================================================
+SHORTFORGE LOCAL — cole o link do YouTube no navegador
+http://127.0.0.1:8765
+Os arquivos gerados ficam na pasta resultados/
+Ctrl+C para encerrar a interface.
+============================================================
+
+Web: "GET / HTTP/1.1" 200 -
+Web: "GET /static/style.css HTTP/1.1" 200 -
+Web: "GET /static/app.js HTTP/1.1" 200 -
+Web: "GET /favicon.ico HTTP/1.1" 404 -
+Web: "GET / HTTP/1.1" 200 -
+Web: "GET /static/style.css HTTP/1.1" 200 -
+Web: "GET /static/app.js HTTP/1.1" 200 -
+Web: "GET /favicon.ico HTTP/1.1" 404 -
+Web: "GET /downloads/5e7ef9d62f7f/shorts_prontos.zip HTTP/1.1" 200 -
+Web: "GET / HTTP/1.1" 200 -
+Web: "GET /static/style.css HTTP/1.1" 200 -
+Web: "GET /static/app.js HTTP/1.1" 200 -
+Web: "GET /favicon.ico HTTP/1.1" 404 -
+Web: "GET /downloads/5e7ef9d62f7f/short_01.mp4 HTTP/1.1" 200 -
+Web: "GET / HTTP/1.1" 200 -
+Web: "GET /static/style.css HTTP/1.1" 200 -
+Web: "GET /static/app.js HTTP/1.1" 200 -
+Web: "GET / HTTP/1.1" 200 -

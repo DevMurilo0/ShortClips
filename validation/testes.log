@@ -1,0 +1,50 @@
+test_real_render_subtitles_and_special_paths (test_ffmpeg_real.FFmpegIntegrationTests.test_real_render_subtitles_and_special_paths) ... ok
+test_filter_build (test_media.MediaTests.test_filter_build) ... ok
+test_missing_srt_fails_before_render (test_media.MediaTests.test_missing_srt_fails_before_render) ... ok
+test_no_facecam_detectable (test_media.MediaTests.test_no_facecam_detectable) ... ok
+test_output_requires_audio_and_duration (test_media.MediaTests.test_output_requires_audio_and_duration) ... ok
+test_paths_and_isolated_render_directories (test_media.MediaTests.test_paths_and_isolated_render_directories) ... ok
+test_real_pyav_whisper_audio_compatibility (test_media.MediaTests.test_real_pyav_whisper_audio_compatibility) ... ok
+test_silent_transcript_fails (test_media.MediaTests.test_silent_transcript_fails) ... ok
+test_srt_generation_and_invalid (test_media.MediaTests.test_srt_generation_and_invalid) ... ok
+test_subprocess_failure_and_cancellation (test_media.MediaTests.test_subprocess_failure_and_cancellation) ... ok
+test_timestamps (test_media.MediaTests.test_timestamps) ... ok
+test_headers_are_not_gameplay_subtitles (test_media.MenuTests.test_headers_are_not_gameplay_subtitles) ... ok
+test_invalid_download_is_not_promoted (test_media.OCRModelTests.test_invalid_download_is_not_promoted) ... ok
+test_verified_download_is_atomic (test_media.OCRModelTests.test_verified_download_is_atomic) ... ok
+test_visual_gate_and_moving_gameplay (test_media.SceneTests.test_visual_gate_and_moving_gameplay) ... ok
+test_atomic_replacement_cannot_truncate_active_download (test_pipeline_api.APITests.test_atomic_replacement_cannot_truncate_active_download) ... ok
+test_cancel_endpoint_stops_real_subprocess (test_pipeline_api.APITests.test_cancel_endpoint_stops_real_subprocess) ... ok
+test_create_conflict_and_cancel (test_pipeline_api.APITests.test_create_conflict_and_cancel) ... ok
+test_download_and_traversal (test_pipeline_api.APITests.test_download_and_traversal) ... ok
+test_interface_and_errors (test_pipeline_api.APITests.test_interface_and_errors) ... ok
+test_job_failure_is_not_success (test_pipeline_api.PipelineTests.test_job_failure_is_not_success) ... ok
+test_reject_visual_candidate_and_select_distinct_reserve (test_pipeline_api.PipelineTests.test_reject_visual_candidate_and_select_distinct_reserve) ... ok
+test_retry_only_failed_clip (test_pipeline_api.PipelineTests.test_retry_only_failed_clip) ... ok
+test_zip_persistence_and_partial_failures (test_pipeline_api.PipelineTests.test_zip_persistence_and_partial_failures) ... ok
+test_invalid_urls (test_pipeline_api.URLTests.test_invalid_urls) ... ok
+test_manual_validation (test_pipeline_api.URLTests.test_manual_validation) ... ok
+test_zero_heatmap_does_not_claim_replay_selection (test_scoring.EmptyReplayTests.test_zero_heatmap_does_not_claim_replay_selection) ... ok
+test_durations_and_nonoverlap (test_scoring.IntervalRegressionTests.test_durations_and_nonoverlap) ... ok
+test_nonfinite_duration (test_scoring.IntervalRegressionTests.test_nonfinite_duration) ... ok
+test_audio_without_heatmap (test_scoring.ScoringTests.test_audio_without_heatmap) ... ok
+test_heatmap (test_scoring.ScoringTests.test_heatmap) ... ok
+test_short_video_limit (test_scoring.ScoringTests.test_short_video_limit) ... ok
+test_url_validation (test_scoring.ScoringTests.test_url_validation) ... ok
+
+----------------------------------------------------------------------
+Ran 33 tests in 26.379s
+
+OK
+Web: "GET /downloads/abc/short_01.mp4 HTTP/1.1" 200 -
+Web: "POST /api/jobs HTTP/1.1" 201 -
+Web: "POST /api/jobs HTTP/1.1" 201 -
+Web: "POST /api/jobs HTTP/1.1" 409 -
+Web: "GET /downloads/abc/short_01.mp4 HTTP/1.1" 200 -
+Web: "GET /downloads/abc/%2e%2e%2fapp.py HTTP/1.1" 404 -
+Web: "GET / HTTP/1.1" 200 -
+Web: "GET /static/app.js HTTP/1.1" 200 -
+Web: "POST /api/jobs HTTP/1.1" 400 -
+Web: "POST /api/jobs HTTP/1.1" 400 -
+Web: "POST /api/jobs HTTP/1.1" 400 -
+Web: "POST /api/jobs HTTP/1.1" 400 -

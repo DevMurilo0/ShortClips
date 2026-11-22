@@ -1,0 +1,26 @@
+{
+  "results": [
+    {
+      "viewport": [
+        1440,
+        1000
+      ],
+      "ready_cards": 5,
+      "mp4_links": 5,
+      "zip_link": true,
+      "overflow": false
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "ready_cards": 5,
+      "mp4_links": 5,
+      "zip_link": true,
+      "overflow": false
+    }
+  ],
+  "javascript_errors": [],
+  "mp4_download_sha256_matches": true
+}

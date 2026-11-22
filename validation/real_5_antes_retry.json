@@ -1,0 +1,181 @@
+{
+  "id": "5e7ef9d62f7f",
+  "url": "https://youtu.be/yWvnOWILFk0",
+  "count": 5,
+  "length": 45,
+  "resolution": 720,
+  "facecam": "auto",
+  "model_name": "base",
+  "status": "partial",
+  "stage": "partial",
+  "message": "4 de 5 Shorts prontos.",
+  "progress": 80,
+  "title": "CAÇANDO TESOURO! - GRAND THEFT AUTO 6 - Parte 2",
+  "selection_mode": "Heurística local: energia, variação e pausas do áudio; não são dados de views nem análise semântica de cenas",
+  "clips": [
+    {
+      "number": 1,
+      "start": 715.0,
+      "end": 760.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "ready",
+      "face_box": [
+        1016,
+        318,
+        180,
+        160
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 10/12 quadros",
+      "scene_analysis": {
+        "samples": 10,
+        "pillarbox_fraction": 0.0,
+        "mean_motion": 55.768764478764474
+      },
+      "name": "short_01.mp4",
+      "duration": 45.0,
+      "width": 720,
+      "height": 1280,
+      "audio": true,
+      "subtitles": 19,
+      "subtitles_burned": true
+    },
+    {
+      "number": 2,
+      "start": 2743.0,
+      "end": 2788.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "ready",
+      "rejected_candidates": [
+        {
+          "start": 2215.0,
+          "end": 2260.0,
+          "reason": "Menus/mapa identificados por OCR em 2/10 quadros; tentando outro momento."
+        },
+        {
+          "start": 5823.0,
+          "end": 5868.0,
+          "reason": "Menus/mapa identificados por OCR em 6/10 quadros; tentando outro momento."
+        }
+      ],
+      "face_box": [
+        1014,
+        322,
+        184,
+        162
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+      "scene_analysis": {
+        "samples": 10,
+        "pillarbox_fraction": 0.0,
+        "mean_motion": 59.518953238953245,
+        "menu_fraction": 0.1,
+        "menu_frames": [
+          {
+            "time": 1.0,
+            "text": "14:48\n\nJASON E LUCIA\n\nREGISTRO\n\nPROGRESSO\n\n[RU\n\na\n\nPo\n\n$1,737)\n\nD\n\nwu\n\n4\n\nE\n\n2 q\n\nTEU LINIIIMLICAI KZ\n\nY\n\nVISUALIZAÇÃO 3D) (9)\n\nDEFINIR DESTINO 63\n\nSAIR (9)"
+          }
+        ]
+      },
+      "name": "short_02.mp4",
+      "duration": 45.0,
+      "width": 720,
+      "height": 1280,
+      "audio": true,
+      "subtitles": 14,
+      "subtitles_burned": true
+    },
+    {
+      "number": 3,
+      "start": 2328.0,
+      "end": 2373.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "ready",
+      "face_box": [
+        1016,
+        314,
+        182,
+        162
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+      "scene_analysis": {
+        "samples": 10,
+        "pillarbox_fraction": 0.0,
+        "mean_motion": 51.739922779922786
+      },
+      "name": "short_03.mp4",
+      "duration": 45.0,
+      "width": 720,
+      "height": 1280,
+      "audio": true,
+      "subtitles": 12,
+      "subtitles_burned": true
+    },
+    {
+      "number": 4,
+      "start": 6409.0,
+      "end": 6454.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "failed",
+      "rejected_candidates": [
+        {
+          "start": 3454.0,
+          "end": 3499.0,
+          "reason": "Sequência com moldura de tela/vídeo inserido persistente; tentando outro momento com gameplay em tela cheia."
+        }
+      ],
+      "face_box": [
+        1012,
+        316,
+        180,
+        160
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+      "scene_analysis": {
+        "samples": 10,
+        "pillarbox_fraction": 0.1,
+        "mean_motion": 54.580420420420424
+      },
+      "name": "short_04.mp4",
+      "duration": 45.0,
+      "width": 720,
+      "height": 1280,
+      "audio": true,
+      "subtitles": 20,
+      "subtitles_burned": true,
+      "error": "Validação visual reprovada: sequência de menus/configurações/mapa. Repetir com outro candidato."
+    },
+    {
+      "number": 5,
+      "start": 4782.0,
+      "end": 4827.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "ready",
+      "face_box": [
+        1028,
+        312,
+        184,
+        162
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+      "scene_analysis": {
+        "samples": 10,
+        "pillarbox_fraction": 0.0,
+        "mean_motion": 57.675148005148
+      },
+      "name": "short_05.mp4",
+      "duration": 45.0,
+      "width": 720,
+      "height": 1280,
+      "audio": true,
+      "subtitles": 16,
+      "subtitles_burned": true
+    }
+  ],
+  "errors": [
+    "Corte 4: Validação visual reprovada: sequência de menus/configurações/mapa. Repetir com outro candidato."
+  ],
+  "zip_name": "shorts_prontos.zip",
+  "candidates": [],
+  "manual_box": null,
+  "started_at": "2026-11-22T08:06:09.136224+00:00"
+}

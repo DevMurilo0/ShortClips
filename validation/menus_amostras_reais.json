@@ -1,0 +1,45 @@
+[
+  {
+    "clip": 1,
+    "accepted": true,
+    "metrics": {
+      "samples": 10,
+      "pillarbox_fraction": 0.0,
+      "mean_motion": 55.768764478764474,
+      "menu_fraction": 0.0,
+      "menu_frames": []
+    }
+  },
+  {
+    "clip": 2,
+    "accepted": false,
+    "reason": "Menus/mapa identificados por OCR em 2/10 quadros; tentando outro momento."
+  },
+  {
+    "clip": 3,
+    "accepted": true,
+    "metrics": {
+      "samples": 10,
+      "pillarbox_fraction": 0.0,
+      "mean_motion": 51.739922779922786,
+      "menu_fraction": 0.0,
+      "menu_frames": []
+    }
+  },
+  {
+    "clip": 4,
+    "accepted": false,
+    "reason": "Menus/mapa identificados por OCR em 3/10 quadros; tentando outro momento."
+  },
+  {
+    "clip": 5,
+    "accepted": true,
+    "metrics": {
+      "samples": 10,
+      "pillarbox_fraction": 0.0,
+      "mean_motion": 57.675148005148,
+      "menu_fraction": 0.0,
+      "menu_frames": []
+    }
+  }
+]

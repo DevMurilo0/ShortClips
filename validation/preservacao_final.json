@@ -1,0 +1,14 @@
+{
+  "preserved_during_last_retry": [
+    "short_01.mp4",
+    "short_02.mp4",
+    "short_03.mp4",
+    "short_05.mp4"
+  ],
+  "original_valid_clips_preserved": [
+    "short_01.mp4",
+    "short_03.mp4",
+    "short_05.mp4"
+  ],
+  "render_temporary_directories": 0
+}

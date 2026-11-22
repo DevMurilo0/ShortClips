@@ -1,0 +1,9 @@
+{
+  "exit_code": 0,
+  "elapsed": 10.361942707000708,
+  "status": "running",
+  "stage": "transcribing",
+  "temporary_renders": [],
+  "stdout": "\n============================================================\nSHORTFORGE LOCAL — cole o link do YouTube no navegador\nhttp://127.0.0.1:36153\nOs arquivos gerados ficam na pasta resultados/\nCtrl+C para encerrar a interface.\n============================================================\n\n",
+  "stderr": ""
+}

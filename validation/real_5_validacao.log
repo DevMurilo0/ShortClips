@@ -1,0 +1,122 @@
+[
+  {
+    "name": "short_01.mp4",
+    "path": "/home/murilo/TopClipsBr/ferramente/ShortForge_Local/resultados/5e7ef9d62f7f/short_01.mp4",
+    "duration": 45.0,
+    "width": 720,
+    "height": 1280,
+    "audio": true,
+    "original_audio_correlation": 0.9999873109823575,
+    "decode": "passed",
+    "captions": 19,
+    "caption_time": 2.33,
+    "caption_text": "Mano, na moral, velho, tem\nmais stamina aqui, eu",
+    "introduced_caption_pixels": 8869,
+    "facecam": "Facecam detectada: inferior-direito, persistência 10/12 quadros",
+    "face_box": [
+      1016,
+      318,
+      180,
+      160
+    ],
+    "start": 715.0,
+    "end": 760.0,
+    "sha256": "3ea246faff1728e847dfc30a721caf892c2fc36498a004714aeae6890794b8c2"
+  },
+  {
+    "name": "short_02.mp4",
+    "path": "/home/murilo/TopClipsBr/ferramente/ShortForge_Local/resultados/5e7ef9d62f7f/short_02.mp4",
+    "duration": 45.0,
+    "width": 720,
+    "height": 1280,
+    "audio": true,
+    "original_audio_correlation": 0.9999900131023287,
+    "decode": "passed",
+    "captions": 14,
+    "caption_time": 2.4,
+    "caption_text": "Eu não consigo marcar porra\nda minha casa, porra, se",
+    "introduced_caption_pixels": 5902,
+    "facecam": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+    "face_box": [
+      1014,
+      322,
+      184,
+      162
+    ],
+    "start": 2743.0,
+    "end": 2788.0,
+    "sha256": "217767afbdacd9eebee34713f9154105b852db49e76eab0c0c804739b4492bb2"
+  },
+  {
+    "name": "short_03.mp4",
+    "path": "/home/murilo/TopClipsBr/ferramente/ShortForge_Local/resultados/5e7ef9d62f7f/short_03.mp4",
+    "duration": 45.0,
+    "width": 720,
+    "height": 1280,
+    "audio": true,
+    "original_audio_correlation": 0.9999704139096833,
+    "decode": "passed",
+    "captions": 12,
+    "caption_time": 4.62,
+    "caption_text": "Bora pra praia, mano.",
+    "introduced_caption_pixels": 3930,
+    "facecam": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+    "face_box": [
+      1016,
+      314,
+      182,
+      162
+    ],
+    "start": 2328.0,
+    "end": 2373.0,
+    "sha256": "030fcf993e2800f39acc1daa4a85a39cc32aa2a7868f6a0a732597f2b8b598ec"
+  },
+  {
+    "name": "short_04.mp4",
+    "path": "/home/murilo/TopClipsBr/ferramente/ShortForge_Local/resultados/5e7ef9d62f7f/short_04.mp4",
+    "duration": 45.0,
+    "width": 720,
+    "height": 1280,
+    "audio": true,
+    "original_audio_correlation": 0.9999960763557162,
+    "decode": "passed",
+    "captions": 19,
+    "caption_time": 2.2,
+    "caption_text": "Mano, fiz com pra meu.",
+    "introduced_caption_pixels": 4075,
+    "facecam": "Facecam detectada: inferior-direito, persistência 6/12 quadros",
+    "face_box": [
+      1014,
+      308,
+      198,
+      176
+    ],
+    "start": 5496.0,
+    "end": 5541.0,
+    "sha256": "57ae7ac3004e4d19ef0b4c3afd75caf051d56fa9959d746fa7911529f30ae891"
+  },
+  {
+    "name": "short_05.mp4",
+    "path": "/home/murilo/TopClipsBr/ferramente/ShortForge_Local/resultados/5e7ef9d62f7f/short_05.mp4",
+    "duration": 45.0,
+    "width": 720,
+    "height": 1280,
+    "audio": true,
+    "original_audio_correlation": 0.9999685279895718,
+    "decode": "passed",
+    "captions": 16,
+    "caption_time": 2.28,
+    "caption_text": "Cara, essa é um grosso!",
+    "introduced_caption_pixels": 4511,
+    "facecam": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+    "face_box": [
+      1028,
+      312,
+      184,
+      162
+    ],
+    "start": 4782.0,
+    "end": 4827.0,
+    "sha256": "0a2ed417f09b9356a8de5010b6acb16d186905cd3d406dbb1dca68931cf277d1"
+  }
+]

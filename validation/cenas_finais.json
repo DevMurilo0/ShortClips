@@ -1,0 +1,52 @@
+[
+  {
+    "number": 1,
+    "accepted": true,
+    "samples": 10,
+    "pillarbox_fraction": 0.0,
+    "mean_motion": 55.768764478764474,
+    "menu_fraction": 0.0,
+    "menu_frames": []
+  },
+  {
+    "number": 2,
+    "accepted": true,
+    "samples": 10,
+    "pillarbox_fraction": 0.0,
+    "mean_motion": 59.518953238953245,
+    "menu_fraction": 0.1,
+    "menu_frames": [
+      {
+        "time": 1.0,
+        "text": "14:48\n\nJASON E LUCIA\n\nREGISTRO\n\nPROGRESSO\n\n[RU\n\na\n\nPo\n\n$1,737)\n\nD\n\nwu\n\n4\n\nE\n\n2 q\n\nTEU LINIIIMLICAI KZ\n\nY\n\nVISUALIZAÇÃO 3D) (9)\n\nDEFINIR DESTINO 63\n\nSAIR (9)"
+      }
+    ]
+  },
+  {
+    "number": 3,
+    "accepted": true,
+    "samples": 10,
+    "pillarbox_fraction": 0.0,
+    "mean_motion": 51.739922779922786,
+    "menu_fraction": 0.0,
+    "menu_frames": []
+  },
+  {
+    "number": 4,
+    "accepted": true,
+    "samples": 10,
+    "pillarbox_fraction": 0.0,
+    "mean_motion": 18.266156156156157,
+    "menu_fraction": 0.0,
+    "menu_frames": []
+  },
+  {
+    "number": 5,
+    "accepted": true,
+    "samples": 10,
+    "pillarbox_fraction": 0.0,
+    "mean_motion": 57.675148005148,
+    "menu_fraction": 0.0,
+    "menu_frames": []
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "python": "3.14.10 (main, Nov  4 2026, 18:21:50) [GCC 16.2.1 20260810]",
+  "packages": {
+    "yt-dlp": "2026.10.26",
+    "faster-whisper": "1.2.1",
+    "av": "18.1.0",
+    "opencv-python-headless": "4.14.0.94",
+    "numpy": "2.5.5",
+    "ctranslate2": "4.9.0",
+    "playwright": "1.65.2"
+  },
+  "ffmpeg": "ffmpeg version n9.1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "tesseract": "tesseract 5.5.4",
+  "ocr_model_sha256": "c4932b937207a9514b7514d518b931a99938c02a28a5a5a553f8599ed58b7deb"
+}

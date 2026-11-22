@@ -1,0 +1,26 @@
+[
+  {
+    "name": "short_01.mp4",
+    "path": "/home/murilo/TopClipsBr/ferramente/ShortForge_Local/resultados/6b82c671ddf9/short_01.mp4",
+    "duration": 45.0,
+    "width": 720,
+    "height": 1280,
+    "audio": true,
+    "original_audio_correlation": 0.9999685279895718,
+    "decode": "passed",
+    "captions": 16,
+    "caption_time": 2.28,
+    "caption_text": "Cara, essa é um grosso!",
+    "introduced_caption_pixels": 4511,
+    "facecam": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+    "face_box": [
+      1028,
+      312,
+      184,
+      162
+    ],
+    "start": 4782.0,
+    "end": 4827.0,
+    "sha256": "0a2ed417f09b9356a8de5010b6acb16d186905cd3d406dbb1dca68931cf277d1"
+  }
+]

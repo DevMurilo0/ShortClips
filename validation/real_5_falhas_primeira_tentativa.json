@@ -1,0 +1,110 @@
+{
+  "id": "5e7ef9d62f7f",
+  "url": "https://youtu.be/yWvnOWILFk0",
+  "count": 5,
+  "length": 45,
+  "resolution": 720,
+  "facecam": "auto",
+  "model_name": "base",
+  "status": "running",
+  "stage": "rendering",
+  "message": "Corte 3: Montando facecam, gameplay e legendas...",
+  "progress": 20,
+  "title": "CAÇANDO TESOURO! - GRAND THEFT AUTO 6 - Parte 2",
+  "selection_mode": "Heurística local: energia, variação e pausas do áudio; não são dados de views nem análise semântica de cenas",
+  "clips": [
+    {
+      "number": 1,
+      "start": 715.0,
+      "end": 760.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "ready",
+      "face_box": [
+        1016,
+        318,
+        180,
+        160
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 10/12 quadros",
+      "scene_analysis": {
+        "samples": 10,
+        "pillarbox_fraction": 0.0,
+        "mean_motion": 55.768764478764474
+      },
+      "name": "short_01.mp4",
+      "duration": 45.0,
+      "width": 720,
+      "height": 1280,
+      "audio": true,
+      "subtitles": 19,
+      "subtitles_burned": true
+    },
+    {
+      "number": 2,
+      "start": 2215.0,
+      "end": 2260.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "failed",
+      "error": "Falha ao extrair o trecho do YouTube. Verifique se o vídeo está público, se o yt-dlp está atualizado e se o acesso é permitido. Detalhes: Extração do trecho: WARNING: [youtube] [jsc] Remote components challenge solver script (deno) and NPM package (deno) were skipped. These may be required to solve JS challenges. You can enable these downloads with  --remote-components ejs:github  (recommended) or  --remote-components ejs:npm , respectively. For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS\nWARNING: [youtube] yWvnOWILFk0: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS\nWARNING: [youtube] yWvnOWILFk0: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS\n[https @ 0x564d698c1d80] HTTP error 403 Forbidden\n[in#0 @ 0x564d698c0d80] Error opening input: Server returned 403 Forbidden (access denied)\nError opening input file https://rr1---sn-avj5aapo3cg-gxjl.googlevideo.com/videoplayback?expire=1795356709&ei=xaMCa8uhAZe0obIP8cKb0Ag&ip=177.36.23.149&id=o-ADQHTjHQX7JW_a4OQHeIYCMRoK03_f-XJa3-YskNhslR&itag=398&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&cps=1129&met=1795335109%2C&mh=wp&mm=18%2C29&mn=sn-avj5aapo3cg-gxjl%2Csn-2obg05-jw&ms=aub%2Crdu&mv=m&mvi=1&pl=26&rms=aub%2Caub&pcm2=no&initcwndbps=1339125&bui=AZFAFb8sclwNko4nsMK034u0Rsn6dsPxlQVoxiPOJljOhTbLlu-jmU7vQhBUFH8CXUI4hFPO2goepJVC&spc=nfZ8ZhhNzuv5Xr25V5Jsu4fSf-jL-oNdp6fIMmsMs61QSpQRVwQtwNQmkXp4yLNXOQ&vprv=1&svpuc=1&mime=video%2Fmp4&rqh=1&gir=yes&clen=1214123000&dur=7535.949&lmt=1795065300864714&mt=1795334720&fvip=3&epbp=1&keepalive=yes&fexp=51565115%2C52227522&c=VISIONOS&txp=3309224&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cpcm2%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&sig=AE0s2JYwRQIhAIP3K-K138QaPGZyl6tZLr-ufYWHV_oBXnphjJXY5UXUAiBGRf_FCjKzK6OgzW_tbKw6SVgEW_LlEDmQXZyjYfdtyw%3D%3D&lsparams=cps%2Cmet%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRQIhAPwv-xc3zs6m3uQ7keT5IZXzK5nTQhMC7TN3claLCJ9GAiB5Zh3BUDtwlF7tCBjH-fZFoOOIY77rwiohTc51dUhWcA%3D%3D.\nError opening input files: Server returned 403 Forbidden (access denied)\n\n\nERROR: ffmpeg exited with code 8"
+    },
+    {
+      "number": 3,
+      "start": 2328.0,
+      "end": 2373.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "rendering",
+      "face_box": [
+        1016,
+        314,
+        182,
+        162
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 12/12 quadros",
+      "scene_analysis": {
+        "samples": 10,
+        "pillarbox_fraction": 0.0,
+        "mean_motion": 51.739922779922786
+      }
+    },
+    {
+      "number": 4,
+      "start": 3454.0,
+      "end": 3499.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "queued"
+    },
+    {
+      "number": 5,
+      "start": 4782.0,
+      "end": 4827.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "queued"
+    }
+  ],
+  "errors": [],
+  "zip_name": null,
+  "candidates": [
+    {
+      "start": 6409.0,
+      "end": 6454.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)"
+    },
+    {
+      "start": 7488.0,
+      "end": 7533.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)"
+    },
+    {
+      "start": 5823.0,
+      "end": 5868.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)"
+    },
+    {
+      "start": 2743.0,
+      "end": 2788.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)"
+    }
+  ],
+  "manual_box": null,
+  "started_at": "2026-11-22T08:06:09.136224+00:00"
+}

@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Iniciar ShortForge",
+      "type": "shell",
+      "command": "./iniciar.sh",
+      "options": {"cwd": "${workspaceFolder}"},
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {"reveal": "always", "panel": "dedicated", "clear": false},
+      "group": "build"
+    }
+  ]
+}

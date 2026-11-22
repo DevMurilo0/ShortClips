@@ -1,0 +1,21 @@
+{
+  "duration": 45.0,
+  "width": 1080,
+  "height": 1920,
+  "has_video": true,
+  "has_audio": true,
+  "streams": [
+    {
+      "codec_type": "video",
+      "width": 1080,
+      "height": 1920,
+      "start_time": "0.000000",
+      "duration": "45.000000"
+    },
+    {
+      "codec_type": "audio",
+      "start_time": "0.000000",
+      "duration": "45.000000"
+    }
+  ]
+}

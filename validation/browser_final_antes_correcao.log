@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/home/murilo/TopClipsBr/ferramente/ShortForge_Local/validation/check_final_browser.py", line 15, in <module>
+    assert page.locator('#cancelJob').is_hidden()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+AssertionError

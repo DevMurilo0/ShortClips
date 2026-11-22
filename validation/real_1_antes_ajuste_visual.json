@@ -1,0 +1,42 @@
+{
+  "id": "6b82c671ddf9",
+  "url": "https://youtu.be/yWvnOWILFk0",
+  "count": 1,
+  "length": 45,
+  "resolution": 720,
+  "facecam": "auto",
+  "model_name": "base",
+  "status": "completed",
+  "stage": "completed",
+  "message": "1 de 1 Shorts prontos.",
+  "progress": 100,
+  "title": "CAÇANDO TESOURO! - GRAND THEFT AUTO 6 - Parte 2",
+  "selection_mode": "Heurística local: energia, variação e pausas do áudio; não são dados de views nem análise semântica de cenas",
+  "clips": [
+    {
+      "number": 1,
+      "start": 3454.0,
+      "end": 3499.0,
+      "selection_reason": "Heurística de energia e variação do áudio (não é Most Replayed)",
+      "status": "ready",
+      "face_box": [
+        1074,
+        342,
+        204,
+        182
+      ],
+      "facecam_detection": "Facecam detectada: inferior-direito, persistência 8/12 quadros",
+      "name": "short_01.mp4",
+      "duration": 45.0,
+      "width": 720,
+      "height": 1280,
+      "audio": true,
+      "subtitles": 2,
+      "subtitles_burned": true
+    }
+  ],
+  "errors": [],
+  "zip_name": "shorts_prontos.zip",
+  "manual_box": null,
+  "started_at": "2026-11-22T07:50:35.787312+00:00"
+}
