@@ -395,9 +395,9 @@ def make_srt(model, video:Path, target:Path, notify, language='pt') -> int:
     target.parent.mkdir(parents=True,exist_ok=True)
     temporary=target.with_suffix('.srt.tmp')
     temporary.write_text(''.join(
-        f'{i}\\n{srt_time(a)} --> {srt_time(b)}\\n{text}\\n\\n'
+        f'{i}\n{srt_time(a)} --> {srt_time(b)}\n{text}\n\n'
         for i,(a,b,text) in enumerate(cues,1)
-    ).replace('\\n','\n'),encoding='utf-8')
+    ),encoding='utf-8')
     validate_srt(temporary,duration)
     temporary.replace(target)
     return len(cues)
