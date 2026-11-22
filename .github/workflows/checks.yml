@@ -1,0 +1,32 @@
+name: ShortForge checks
+on:
+  push:
+    branches: [feat/smart-clips-vercel]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: System tools
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg tesseract-ocr
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+      - name: Unit and FFmpeg tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate static frontend
+        run: |
+          node --check web/app.js
+          node --check scripts/build_static.mjs
+          node scripts/build_static.mjs
+          test -s public/index.html
+          test -s public/app.js
+          test -s public/config.js
+          test -s public/style.css
