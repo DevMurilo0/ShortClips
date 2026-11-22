@@ -9,11 +9,43 @@ function authHeaders(){return !localMode&&apiKey?{'Authorization':'Bearer '+apiK
 function apiPath(path){return apiBase+path;}
 function hasApi(){return connected;}
 function apiNotice(message){const el=$('backendStatus');if(el)el.textContent=message;}
+function enforceCloudLimits(){
+  if(localMode)return;
+  for(const [id,value] of [['count','5'],['length','45'],['resolution','720'],['model','base']]){
+    const el=$(id);if(el){el.value=value;el.disabled=true;}
+  }
+}
+async function refreshUsage(){
+  if(!hasApi()||localMode)return;
+  const panel=$('usagePanel');if(!panel)return;
+  try{
+    const response=await fetch(apiPath('/api/usage'),{
+      headers:authHeaders(), signal:AbortSignal.timeout(12000)
+    });
+    if(!response.ok)throw Error('Sem dados de consumo.');
+    const usage=await response.json();
+    panel.hidden=false;
+    $('usageJobs').textContent=usage.jobs_month+' de '+usage.jobs_month_limit+' processamentos neste mês';
+    $('usageEstimate').textContent='Uma sessão máxima pode consumir cerca de '+
+      usage.estimated_one_max_session.cpu_monthly_percent+
+      '% da CPU mensal do Sandbox (estimativa, não faturamento).';
+  }catch(e){panel.hidden=true;}
+}
+async function signedDownload(pathname){
+  const url=new URL(apiPath('/api/download'),location.href);
+  url.searchParams.set('pathname',pathname);
+  const response=await fetch(url,{headers:authHeaders(),signal:AbortSignal.timeout(15000)});
+  const data=await response.json();
+  if(!response.ok||!data.url)throw Error(data.error||'Não foi possível assinar o download.');
+  // A URL privada vale poucos minutos; o token nunca entra na query.
+  window.location.assign(data.url);
+}
 async function configureBackend(){
   const panel=$('backendPanel');
   if(!panel)return;
   panel.hidden=localMode;
   if(localMode)return;
+  enforceCloudLimits();
   $('backendURL').value=apiBase;
   $('backendAccessKey').value=apiKey;
   $('submit').disabled=!hasApi();
@@ -36,6 +68,7 @@ async function configureBackend(){
       localStorage.setItem('shortforge_api_url',apiBase);
       sessionStorage.setItem('shortforge_public_access_key',apiKey);
       $('submit').disabled=false;apiNotice('Servidor verificado. Acesso configurado nesta aba.');
+      await refreshUsage();
     }catch(e){apiNotice('Conexão não estabelecida: '+(e.message||e));}
   });
 }
@@ -65,16 +98,25 @@ function render(job){
     if(clip.status!=='ready'){
       card.append(id,title,detail);
       if(clip.status==='failed'){
-        const preview=document.createElement('a');preview.href=apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/clips/'+clip.number+'/preview');preview.target='_blank';preview.textContent='Ver quadro original';card.append(preview);
+        if(localMode){
+          const preview=document.createElement('a');preview.href=apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/clips/'+clip.number+'/preview');preview.target='_blank';preview.textContent='Ver quadro original';card.append(preview);
+        }
         const retry=document.createElement('button');retry.type='button';retry.className='download';retry.textContent='Repetir este corte';retry.disabled=['queued','running','cancelling'].includes(job.status);
-        retry.onclick=()=>retryClip(clip.number);card.append(retry);
+        retry.onclick=()=>retryClip(clip.number);if(localMode)card.append(retry);
       }
       area.appendChild(card);continue;
     }
     const a=document.createElement('a');a.className='download';
     const publicUrl=(!localMode && clip.download_url)||null;
-    if(!localMode&&!publicUrl){
-      const note=document.createElement('p');note.textContent='O download remoto precisa de uma URL assinada no armazenamento de vídeos.';
+    if(!localMode && clip.blob_path){
+      a.href='#';a.textContent='Baixar MP4 seguro ↓';
+      a.onclick=async event=>{
+        event.preventDefault();
+        try{await signedDownload(clip.blob_path);}catch(e){infoError(e.message);}
+      };
+      card.append(id,title,detail,a);
+    }else if(!localMode&&!publicUrl){
+      const note=document.createElement('p');note.textContent='Armazenamento de vídeo indisponível para este corte.';
       card.append(id,title,detail,note);
     }else{
       a.href=publicUrl||safePath(clip.name);a.download=clip.name;a.textContent='Baixar MP4 ↓';
@@ -83,16 +125,23 @@ function render(job){
     area.appendChild(card);
   }
   const zip=$('zipSlot');zip.replaceChildren();
-  if(job.zip_name && (localMode||job.zip_url)){
+  if(job.zip_name && (localMode||job.zip_url||job.zip_path)){
     const a=document.createElement('a');a.className='downloadBig';
-    a.href=(!localMode&&job.zip_url)||safePath(job.zip_name);
-    a.textContent='Baixar todos os Shorts (.ZIP) ↓';zip.appendChild(a);
+    a.href=(!localMode&&job.zip_url)|| (localMode?safePath(job.zip_name):'#');
+    a.textContent='Baixar todos os Shorts (.ZIP) ↓';
+    if(!localMode && job.zip_path){
+      a.onclick=async event=>{
+        event.preventDefault();
+        try{await signedDownload(job.zip_path);}catch(e){infoError(e.message);}
+      };
+    }
+    zip.appendChild(a);
   }
   $('cancelJob').hidden=!['queued','running','cancelling'].includes(job.status);
   $('cancelJob').disabled=job.status==='cancelling';
   $('progressLabel').textContent=(job.clips||[]).filter(c=>c.status==='ready').length+' de '+job.count+' arquivos validados';
   infoError((job.errors||[]).join('\n'));
-  if(['completed','partial','failed','cancelled'].includes(job.status) && timer){clearInterval(timer);timer=null;}
+  if(['completed','partial','failed','cancelled'].includes(job.status) && timer){clearInterval(timer);timer=null;refreshUsage();}
 }
 async function poll(){
   if(!taskId||polling)return;
