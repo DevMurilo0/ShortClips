@@ -1,4 +1,4 @@
-"""Escolha de momentos usando Most Replayed (se houver) ou energia do áudio.
+"""Escolha de momentos por intensidade, continuidade e diversidade temporal.
 
 Heurísticas não representam dados reais de audiência.
 """
@@ -106,41 +106,67 @@ def pick_segments(
         scores = [.5] * seconds
         reason = 'Distribuição pelo vídeo (dados de replay e áudio indisponíveis)'
 
-    # Prioriza segundos que comportam uma cena longa, sem começar antes do vídeo.
+    # Avalia a JANELA COMPLETA, e não apenas 15 segundos do meio. Isso
+    # reduz cenas com um grito isolado e 40s sem contexto.
     candidates = []
     stride = 3 if duration > 180 else 1
+    normalized_energy = _normalize(list(float(x) for x in energies)) if energies else []
     for t in range(0, seconds, stride):
         start = clamp(t - span * .36, 0, max(0, duration - span))
-        if duration>180 and start<min(45,duration*.03):
+        if duration > 180 and start < min(45, duration * .03):
             continue
-        # Prefer low-energy boundaries near the candidate, retaining 30–60s.
         if energies:
-            lo=max(0,int(start)-3); hi=min(len(energies),int(start)+4)
-            if hi>lo: start=float(min(range(lo,hi),key=lambda i:energies[i]))
-            start=min(start,duration-span)
+            # Evita cortar no meio de uma reação/fala quando houver pausa próxima.
+            lo = max(0, int(start) - 5)
+            hi = min(len(energies), int(start) + 6)
+            if hi > lo:
+                start = float(min(range(lo, hi), key=lambda i: energies[i]))
+            start = min(start, duration - span)
         start = round(start, 2)
-        if duration>180 and start+span>duration-30:
+        if duration > 180 and start + span > duration - 30:
             continue
-        # Verifica pontuação ao redor do pico e duração útil para evitar trechos vazios.
-        center = int(min(seconds - 1, start + span / 2))
-        window = scores[max(0, center - 7):min(seconds, center + 8)]
-        value = sum(window) / max(1, len(window))
+        lo, hi = int(start), min(seconds, math.ceil(start + span))
+        values = scores[lo:hi]
+        if not values:
+            continue
+        ordered = sorted(values, reverse=True)
+        top = ordered[:max(1, len(ordered) // 4)]
+        # Mistura continuidade do momento com picos reais de interesse.
+        value = .72 * (sum(values) / len(values)) + .28 * (sum(top) / len(top))
+        if normalized_energy:
+            a = min(len(normalized_energy) - 1, lo)
+            b = min(len(normalized_energy) - 1, max(lo, hi - 1))
+            # Penaliza inícios/fins muito barulhentos (frequente corte de frase).
+            boundary = (normalized_energy[a] + normalized_energy[b]) / 2
+            value -= .08 * boundary
+            if sum(normalized_energy[lo:hi]) / max(1, hi - lo) < .08:
+                value -= .12  # pouco conteúdo audível ao longo do corte
         candidates.append((value, start))
     candidates.sort(reverse=True)
     results = []
     min_gap = max(span * 1.2, min(110, duration / max(3, count * 2)))
-    for score, start in candidates:
+    while candidates and len(results) < count:
+        # Pequeno bônus por diversidade temporal: evita cinco Shorts de um
+        # único minuto de um vídeo com várias horas.
+        def choice(c):
+            score, start = c
+            if not results:
+                return score
+            nearest = min(abs(start - s.start) for s in results)
+            diversity = min(1.0, nearest / max(span * 2, duration / max(2, count * 2)))
+            return score + .10 * diversity
+        best = max(candidates, key=choice)
+        candidates.remove(best)
+        score, start = best
         if all(abs(start - s.start) >= min_gap for s in results):
             results.append(Segment(start, round(start + span, 2), round(score, 4), reason))
-        if len(results) == count:
-            break
     if len(results) < count:
-        # Vídeos menores podem não ter espaço para vários cortes totalmente distintos.
+        # Não duplica intervalos em vídeos pequenos.
         for i in range(count * 4):
             start = clamp((duration - span) * (i + .5) / (count * 4), 0, duration - span)
-            if duration>180 and (start<min(45,duration*.03) or start+span>duration-30):
+            if duration > 180 and (start < min(45, duration * .03) or start + span > duration - 30):
                 continue
-            if all(abs(start - s.start) >= span for s in results):
+            if all(start + span <= s.start or start >= s.end for s in results):
                 results.append(Segment(round(start, 2), round(start + span, 2), 0.1, reason))
             if len(results) == count:
                 break
