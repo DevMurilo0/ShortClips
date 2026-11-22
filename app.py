@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import json
+import hmac
 import mimetypes
 from pathlib import Path
 import threading
@@ -27,6 +28,16 @@ JOBS_LOCK=threading.Lock()
 
 
 class Handler(BaseHTTPRequestHandler):
+    def _worker_authorized(self):
+        secret=os.getenv('SHORTFORGE_WORKER_SECRET','').strip()
+        if not secret:
+            return True  # Local mode only; main() blocks public bind without secret.
+        supplied=self.headers.get('X-ShortForge-Worker-Secret','')
+        if hmac.compare_digest(supplied,secret):
+            return True
+        self._json({'error':'Acesso ao worker não autorizado.'},401)
+        return False
+
     def log_message(self,fmt,*args):
         if not self.path.startswith('/api/jobs/'):
             print('Web: '+(fmt%args))
@@ -68,6 +79,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.wfile.write(raw)
         if p=='/api/health':
             return self._json({'ok':True,'service':'ShortForge Local'})
+        if (p.startswith('/api/jobs/') or p.startswith('/downloads/')) and not self._worker_authorized():
+            return
         if p=='/api/jobs/latest':
             with JOBS_LOCK:
                 job=next(reversed(JOBS.values()),None) if JOBS else None
@@ -114,6 +127,8 @@ class Handler(BaseHTTPRequestHandler):
                                          'Access-Control-Allow-Headers':'Content-Type'})
 
     def do_POST(self):
+        if not self._worker_authorized():
+            return
         origin=self.headers.get('Origin','').rstrip('/')
         same_origin=f'http://{self.headers.get("Host")}'
         if origin and origin!=same_origin and origin not in ALLOWED_ORIGINS:
@@ -174,6 +189,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    if HOST not in ('127.0.0.1','localhost','::1') and not os.getenv('SHORTFORGE_WORKER_SECRET','').strip():
+        raise RuntimeError('Não exponha o worker sem SHORTFORGE_WORKER_SECRET. Defina um segredo forte e use HTTPS.')
     def stop_server(signum,frame):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM,stop_server)
