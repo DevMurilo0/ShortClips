@@ -26,9 +26,12 @@ async function refreshUsage(){
     const usage=await response.json();
     panel.hidden=false;
     $('usageJobs').textContent=usage.jobs_month+' de '+usage.jobs_month_limit+' processamentos neste mês';
-    $('usageEstimate').textContent='Uma sessão máxima pode consumir cerca de '+
-      usage.estimated_one_max_session.cpu_monthly_percent+
-      '% da CPU mensal do Sandbox (estimativa, não faturamento).';
+    const m=usage.usage || {};
+    $('usageEstimate').textContent='CPU '+(m.cpu_monthly_percent??'—')+
+      '% · Memória '+(m.memory_monthly_percent??'—')+
+      '% · Blob (estoque vs. 1 GB) '+(m.storage_vs_1gb_percent??'—')+
+      '% · Transferência estimada '+(m.sandbox_transfer_monthly_percent??'—')+
+      '%. Valores do processamento, não a fatura da Vercel.';
   }catch(e){panel.hidden=true;}
 }
 async function signedDownload(pathname){
