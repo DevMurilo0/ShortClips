@@ -4,21 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>ShortForge — Estúdio local de cortes</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <title>ShortForge — Shorts inteligentes</title>
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <div class="shell">
   <header class="top">
     <div class="logo"><span class="logoMark">✦</span> ShortForge <span style="font-weight:400;color:#879a8b">/ Studio</span></div>
-    <span class="tag">100% LOCAL · SEM API PAGA</span>
+    <span class="tag">SHORTS COM IA · INTERFACE WEB</span>
   </header>
   <main>
+    <section class="panel backendNotice" id="backendPanel" hidden aria-label="Configuração do servidor">
+      <h2>Conectar o motor de processamento</h2>
+      <p class="hint">O site está publicado, mas o navegador não consegue executar FFmpeg e Whisper sozinho. Para gerar Shorts, conecte uma API ShortForge hospedada separadamente. Não exponha um servidor sem autenticação à internet.</p>
+      <label class="input-label" for="backendURL">Endereço HTTPS da API ShortForge</label>
+      <div class="input-row">
+        <input class="linkInput" id="backendURL" type="url" placeholder="https://api.exemplo.com" autocomplete="url">
+        <button type="button" class="primary" id="saveBackend">Conectar servidor</button>
+      </div>
+      <p id="backendStatus" role="status"></p>
+    </section>
     <section class="hero">
       <div>
         <p class="eyebrow">Do link aos vídeos finais</p>
         <h1>Um vídeo longo.<br><em>Vários Shorts.</em></h1>
-        <p class="desc">Cole um link do YouTube. O ShortForge encontra trechos, localiza a facecam, organiza o rosto em cima e a gameplay embaixo, adiciona legendas e entrega seus arquivos MP4 em um ZIP.</p>
+        <p class="desc">Cole um link do YouTube. O ShortForge seleciona cenas usando sinais do vídeo, localiza a facecam, coloca o rosto em cima e a gameplay embaixo e entrega MP4s com legendas curtas em português.</p>
       </div>
       <div class="heroArt" aria-hidden="true"><span class="floatLabel labelA">FACE · CAM</span><div class="phone"><div class="cam"><span>EXPRESSÃO EM DESTAQUE</span></div><div class="game"></div></div><span class="floatLabel labelB">9:16 · SHORTS</span></div>
     </section>
@@ -64,18 +74,19 @@
         <h2>Seu fluxo, automático.</h2>
         <p class="hint">Uma vez que o programa estiver aberto, você só precisa colar o link.</p>
         <div class="workflow">
-          <div class="step"><div class="step-number">01</div><div><b>Analisar o vídeo</b><span>Usa o gráfico “Mais reproduzido” quando estiver disponível. Senão, identifica picos no áudio.</span></div></div>
-          <div class="step"><div class="step-number">02</div><div><b>Escolher cenas</b><span>Seleciona momentos espaçados com cerca de 45 segundos.</span></div></div>
+          <div class="step"><div class="step-number">01</div><div><b>Analisar o vídeo</b><span>Usa o gráfico “Mais reproduzido” quando estiver disponível. Senão, avalia picos, continuidade e distribuição dos momentos.</span></div></div>
+          <div class="step"><div class="step-number">02</div><div><b>Escolher cenas</b><span>Avalia a janela completa, evita cortes sobrepostos e distribui os destaques.</span></div></div>
           <div class="step"><div class="step-number">03</div><div><b>Encontrar a facecam</b><span>Busca um rosto persistente nas laterais com OpenCV. Permite definir a região manualmente.</span></div></div>
-          <div class="step"><div class="step-number">04</div><div><b>Legendar e montar</b><span>Facecam na parte superior, gameplay completa na inferior e legendas em português.</span></div></div>
+          <div class="step"><div class="step-number">04</div><div><b>Legendar e montar</b><span>Facecam na parte superior, gameplay completa na inferior e legendas curtas e sincronizadas em português.</span></div></div>
           <div class="step"><div class="step-number">05</div><div><b>Entregar os arquivos</b><span>MP4 individuais e ZIP com todos os Shorts prontos.</span></div></div>
         </div>
-        <div class="footnote"><strong>Privacidade:</strong> o processamento roda no seu computador. O programa acessa YouTube e baixa o modelo de transcrição na primeira utilização. Não envia o vídeo a um serviço de edição pago.</div>
+        <div class="footnote"><strong>Privacidade:</strong> a renderização acontece no computador ou servidor que você configurar. Na hospedagem pública, não existe edição automática sem um backend de processamento.</div>
       </aside>
     </section>
   </main>
-  <footer class="end"><span>SHORTFORGE LOCAL · Projeto aberto para editar no VS Code</span><span>FFmpeg + OpenCV + Faster-Whisper + yt-dlp</span></footer>
+  <footer class="end"><span>SHORTFORGE · Interface disponível na Vercel; processamento em backend separado</span><span>FFmpeg + OpenCV + Faster-Whisper + yt-dlp</span></footer>
 </div>
-<script src="/static/app.js" defer></script>
+<script src="./config.js"></script>
+<script src="./app.js" defer></script>
 </body>
 </html>
