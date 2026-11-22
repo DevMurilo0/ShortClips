@@ -158,21 +158,19 @@ Para testar o build em sua máquina: `node scripts/build_static.mjs`.
 Serão produzidos `public/index.html`, `public/style.css`,
 `public/app.js` e `public/config.js`.
 
-### API remota e segurança
+### Backend remoto separado
 
-O servidor atual (`app.py`) foi criado para **uso local** e escuta por padrão
-em `127.0.0.1:8765`. É possível configurar `SHORTFORGE_HOST` e a variável
-`SHORTFORGE_ALLOWED_ORIGINS` (origens exatas separadas por vírgula) para
-testar uma interface em outro domínio, com `/api/health` para verificação.
-**CORS não é autenticação**, e não é seguro abrir este servidor sem controles
-adicionais: a API atual expõe tarefas e downloads sem isolamento por usuário.
-Para disponibilizar geração ao público são necessários, antes da exposição:
-autenticação e autorização por tarefa, limites de requisição e de duração,
-fila com workers, armazenamento durável, expiração/limpeza de arquivos,
-HTTPS e proteção contra abuso/custos. Use essas medidas em um backend
-dedicado ou um proxy autenticado. Não configure `SHORTFORGE_HOST=0.0.0.0`
-diretamente na internet sem essas proteções.
+O backend Python para Vercel agora é um projeto **independente** chamado
+`BackendShortClips`. Não deve ficar dentro deste repositório. Enquanto o
+repositório separado não tiver sido criado e implantado, a interface pública
+mostra o painel para conectar a API e não gera arquivos automaticamente.
 
-Um computador local pode servir como worker de testes, mas precisa permanecer
-ligado, e um endereço `127.0.0.1` não é acessível aos visitantes da Vercel.
+No frontend, defina `SHORTFORGE_PUBLIC_API_URL` como a URL HTTPS do backend
+publicado na Vercel (sem barra final), ou informe-a manualmente no painel.
+O endereço de API não é segredo. Já as chaves reais de acesso pertencem às
+variáveis privadas do projeto de backend, nunca ao JavaScript estático.
+
+**A API de controle não renderiza vídeos em Vercel Functions.** Também
+precisará de worker persistente, armazenamento de MP4, controle de acesso e
+limites para uso público.
 
