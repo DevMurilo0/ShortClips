@@ -44,6 +44,28 @@ rate limits centralizados, quotas, proteção contra abuso, storage durável e f
 
 Não coloque tokens no GitHub, nas capturas de tela nem em mensagens.
 
+
+## Alternativa melhor para um único celular: Vercel Sandbox sob demanda
+
+A Vercel lançou o SDK Python 1.0 de Sandbox em novembro de 2026.
+Um **Sandbox sob demanda** pode executar a renderização somente quando um
+usuário pedir Shorts, evitando uma instância Daemon permanente. Em planos
+Hobby, a duração máxima documentada da execução é de aproximadamente **45
+minutos**; mesmo assim, um vídeo de várias horas pode exceder o limite de
+tempo, RAM, rede ou recursos de armazenamento. O uso não é ilimitado/gratuito
+por definição; confira as quotas da conta antes de ativar.
+
+Essa rota ainda requer código adicional e validação real:
+- API inicia um Sandbox isolado e registra um job durável.
+- O processo prepara FFmpeg/OpenCV/Faster-Whisper e executa `shortforge.pipeline`.
+- Progresso deve ser gravado em armazenamento persistente, não RAM.
+- MP4/ZIP devem ser enviados ao Vercel Blob; a API devolve URLs autorizadas.
+- Processo deve finalizar em caso de timeout, cancelamento ou falha.
+
+**Essa integração ainda NÃO foi implementada nem implantada neste repositório.**
+Não confunda a existência da API em `api/index.py` com Shorts remotos
+funcionando. Nunca configure a chave Blob no frontend.
+
 ## Etapa que ainda falta: worker de vídeo
 
 O projeto local \`app.py\` mantém tarefas em memória e grava vídeos no filesystem
