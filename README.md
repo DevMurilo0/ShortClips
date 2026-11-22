@@ -123,4 +123,56 @@ Com o servidor aberto, o teste real (faz download e processamento) é:
 As evidências desta investigação ficam em `validation/`. A seleção por áudio considera energia, variação e pausas próximas ao início; ela não identifica com certeza menus, continuidade narrativa ou frases completas. Uma verificação visual posterior rejeita imagens praticamente estáticas e molduras persistentes de vídeo inserido/TV, tentando candidatos de reserva distintos. Isso reduz alguns falsos destaques, mas não substitui entendimento semântico da cena. O alvo é 45 segundos e os intervalos selecionados não se sobrepõem. Sem dados suficientes, o programa entrega menos cortes e informa resultado parcial.
 
 A verificação de menus usa OCR local com Tesseract e um modelo português de aproximadamente 2 MB, baixado do projeto oficial `tesseract-ocr/tessdata_fast` e verificado por SHA-256. O modelo fica em `modelos/tessdata/por.traineddata`; as imagens analisadas permanecem locais. Cabeçalhos de configurações/mapa e controles de celular no rodapé em 20% ou mais das amostras levam à escolha de outro candidato. Isso é uma heurística e pode deixar de reconhecer interfaces de outros jogos/idiomas. O manifesto do modelo identifica origem, revisão e licença.
-# ShortClips
+
+## Melhorias de seleção e legendas (branch smart-clips)
+
+A seleção continua sendo uma **heurística**, não um modelo semântico que assiste
+ao vídeo inteiro. Agora a classificação avalia **toda a janela de 30–60 s**,
+compara sua intensidade média aos picos do próprio trecho, penaliza cortes em
+fronteiras muito barulhentas e incentiva variedade ao longo de vídeos extensos.
+O gráfico real "Mais reproduzido", quando disponível, ainda tem prioridade.
+A verificação por OCR e movimento descarta trechos suspeitos de menus e pausas.
+
+O Faster-Whisper continua gerando timestamps por palavra, mas as legendas são
+organizadas em cartões curtos (aproximadamente 2–5 palavras), com quebra de
+linha controlada, letras mais legíveis e contorno mais forte. Não há promessa
+de transcrição perfeita: nomes e falas sobrepostas exigem revisão humana.
+
+## Publicação da interface na Vercel
+
+**A Vercel hospeda somente a interface HTML/CSS/JS.** O Python, FFmpeg, yt-dlp,
+OpenCV e Whisper **não rodam apenas em um `index.html`**, e o motor de vídeo
+não cabe no padrão de funções serverless curtas. Publicar esta branch na
+Vercel disponibiliza um site público, mas **a geração de Shorts só funciona
+quando uma API de processamento separada estiver implantada e conectada**.
+
+1. Na Vercel, importe `DevMurilo0/ShortClips` e escolha a branch desejada.
+2. Mantenha o framework como **Other**, o build `node scripts/build_static.mjs`
+   e o diretório de saída `public`. O `vercel.json` já define isso.
+3. Opcionalmente, configure `SHORTFORGE_PUBLIC_API_URL=https://api.seudominio.com`
+   nas variáveis de ambiente da Vercel (endereço **público**, nunca token).
+4. Sem API implantada, a página exibe o painel "Conectar o motor de processamento"
+   e desabilita geração; não exibe resultados fictícios.
+
+Para testar o build em sua máquina: `node scripts/build_static.mjs`.
+Serão produzidos `public/index.html`, `public/style.css`,
+`public/app.js` e `public/config.js`.
+
+### API remota e segurança
+
+O servidor atual (`app.py`) foi criado para **uso local** e escuta por padrão
+em `127.0.0.1:8765`. É possível configurar `SHORTFORGE_HOST` e a variável
+`SHORTFORGE_ALLOWED_ORIGINS` (origens exatas separadas por vírgula) para
+testar uma interface em outro domínio, com `/api/health` para verificação.
+**CORS não é autenticação**, e não é seguro abrir este servidor sem controles
+adicionais: a API atual expõe tarefas e downloads sem isolamento por usuário.
+Para disponibilizar geração ao público são necessários, antes da exposição:
+autenticação e autorização por tarefa, limites de requisição e de duração,
+fila com workers, armazenamento durável, expiração/limpeza de arquivos,
+HTTPS e proteção contra abuso/custos. Use essas medidas em um backend
+dedicado ou um proxy autenticado. Não configure `SHORTFORGE_HOST=0.0.0.0`
+diretamente na internet sem essas proteções.
+
+Um computador local pode servir como worker de testes, mas precisa permanecer
+ligado, e um endereço `127.0.0.1` não é acessível aos visitantes da Vercel.
+
