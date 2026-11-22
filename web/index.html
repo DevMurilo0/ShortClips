@@ -22,6 +22,9 @@
         <input class="linkInput" id="backendURL" type="url" placeholder="https://api.exemplo.com" autocomplete="url">
         <button type="button" class="primary" id="saveBackend">Conectar servidor</button>
       </div>
+      <label class="input-label" for="backendAccessKey" style="margin-top:15px">Chave de acesso ao processamento</label>
+      <input class="linkInput" id="backendAccessKey" type="password" placeholder="Chave do seu backend" autocomplete="off" style="width:100%">
+      <p class="disclaimer">Esta chave é mantida somente nesta aba; não coloque chaves do servidor em variáveis públicas da Vercel.</p>
       <p id="backendStatus" role="status"></p>
     </section>
     <section class="hero">
