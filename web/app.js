@@ -1,9 +1,38 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let taskId=null, timer=null, polling=false;
+const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
+let apiBase=(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'').replace(/\/$/,'');
+function apiPath(path){return apiBase+path;}
+function hasApi(){return localMode||Boolean(apiBase);}
+function apiNotice(message){const el=$('backendStatus');if(el)el.textContent=message;}
+async function configureBackend(){
+  const panel=$('backendPanel');
+  if(!panel)return;
+  panel.hidden=localMode;
+  if(localMode)return;
+  $('backendURL').value=apiBase;
+  $('submit').disabled=!hasApi();
+  apiNotice(hasApi()?'Servidor definido. Verifique a conexão antes de gerar vídeos.':'Aguardando conexão com o servidor de processamento.');
+  $('saveBackend').addEventListener('click',async()=>{
+    const value=$('backendURL').value.trim().replace(/\/$/,'');
+    let url;
+    try{
+      url=new URL(value);
+      if(url.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(url.hostname))throw Error('O servidor público precisa de HTTPS.');
+      if(url.pathname!=='/'||url.search||url.hash)throw Error('Informe só o domínio da API, sem caminho.');
+      apiNotice('Verificando a API...');
+      const r=await fetch(url.origin+'/api/health',{signal:AbortSignal.timeout(8000)});
+      if(!r.ok||(await r.json()).ok!==true)throw Error('Esta URL não respondeu como API ShortForge.');
+      apiBase=url.origin;localStorage.setItem('shortforge_api_url',apiBase);
+      $('submit').disabled=false;apiNotice('Servidor conectado. Agora você pode gerar os Shorts.');
+    }catch(e){apiNotice('Conexão não estabelecida: '+(e.message||e));}
+  });
+}
+
 function asText(element, text) {element.textContent=String(text??'');}
 function infoError(message) {$('jobErrors').textContent=message;}
-function safePath(name) {return '/downloads/'+encodeURIComponent(taskId)+'/'+encodeURIComponent(name);}
+function safePath(name) {return apiPath('/downloads/'+encodeURIComponent(taskId)+'/'+encodeURIComponent(name));}
 function render(job){
   if(!job)return;
   taskId=job.id;
@@ -26,7 +55,7 @@ function render(job){
     if(clip.status!=='ready'){
       card.append(id,title,detail);
       if(clip.status==='failed'){
-        const preview=document.createElement('a');preview.href='/api/jobs/'+encodeURIComponent(taskId)+'/clips/'+clip.number+'/preview';preview.target='_blank';preview.textContent='Ver quadro original';card.append(preview);
+        const preview=document.createElement('a');preview.href=apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/clips/'+clip.number+'/preview');preview.target='_blank';preview.textContent='Ver quadro original';card.append(preview);
         const retry=document.createElement('button');retry.type='button';retry.className='download';retry.textContent='Repetir este corte';retry.disabled=['queued','running','cancelling'].includes(job.status);
         retry.onclick=()=>retryClip(clip.number);card.append(retry);
       }
@@ -46,23 +75,25 @@ function render(job){
 async function poll(){
   if(!taskId||polling)return;
   polling=true;
-  try{const r=await fetch('/api/jobs/'+encodeURIComponent(taskId),{signal:AbortSignal.timeout(10000)});if(r.ok)render(await r.json())}catch(e){infoError('Não foi possível consultar o andamento. O programa local ainda está aberto?')}
+  try{const r=await fetch(apiPath('/api/jobs/'+encodeURIComponent(taskId)),{signal:AbortSignal.timeout(10000)});if(r.ok)render(await r.json())}catch(e){infoError('Não foi possível consultar o andamento. O programa local ainda está aberto?')}
   finally{polling=false}
 }
 function startPolling(){if(timer)clearInterval(timer);timer=setInterval(poll,2500);poll()}
 $('createForm').addEventListener('submit',async event=>{
   event.preventDefault();
+  if(!hasApi()){infoError('É necessário conectar um backend de processamento antes de gerar Shorts.');return;}
   $('submit').disabled=true; $('submit').textContent='Preparando...'; infoError('');
   try { manualBox(); } catch(e) { infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;return; }
   const payload={url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:manualBox()};
   try{
-    const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(apiPath('/api/jobs'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data=await r.json();
     if(!r.ok)throw new Error(data.error||'Não foi possível iniciar.');
     render(data.job);startPolling();$('output').scrollIntoView({block:'nearest',behavior:'smooth'});
   }catch(e){infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;$('submit').textContent='Gerar Shorts ↗'}
 });
-(async()=>{try{const r=await fetch('/api/jobs/latest');const x=await r.json();if(x.job){render(x.job);if(['queued','running'].includes(x.job.status))startPolling()}}catch(e){/* servidor pode ainda estar iniciando */}})();
+configureBackend();
+(async()=>{if(!hasApi())return;try{const r=await fetch(apiPath('/api/jobs/latest'));const x=await r.json();if(x.job){render(x.job);if(['queued','running'].includes(x.job.status))startPolling()}}catch(e){/* servidor pode ainda estar iniciando */}})();
 
 function manualBox(){
   const text=$('manualBox').value.trim();
@@ -75,13 +106,13 @@ async function retryClip(number){
   try{
     const box=manualBox();
     const payload={number};if(box)payload.manual_box=box;
-    const r=await fetch('/api/jobs/'+encodeURIComponent(taskId)+'/retry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/retry'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const data=await r.json();if(!r.ok)throw new Error(data.error);render(data.job);startPolling();
   }catch(e){infoError(e.message)}
 }
 $('cancelJob').onclick=async()=>{
   try{
-    const r=await fetch('/api/jobs/'+encodeURIComponent(taskId)+'/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const r=await fetch(apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/cancel'),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     const data=await r.json();if(!r.ok)throw new Error(data.error);render(data.job);
   }catch(e){infoError(e.message)}
 };
