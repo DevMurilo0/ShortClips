@@ -1,7 +1,7 @@
 name: ShortForge checks
 on:
   push:
-    branches: [feat/smart-clips-vercel]
+    branches: [main, feat/smart-clips-vercel]
   pull_request:
     branches: [main]
 permissions:
@@ -29,4 +29,5 @@ jobs:
           test -s public/index.html
           test -s public/app.js
           test -s public/config.js
+          grep -q 'backend-short-clips.vercel.app' public/config.js
           test -s public/style.css
