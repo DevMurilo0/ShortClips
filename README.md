@@ -176,3 +176,61 @@ diretamente na internet sem essas proteções.
 Um computador local pode servir como worker de testes, mas precisa permanecer
 ligado, e um endereço `127.0.0.1` não é acessível aos visitantes da Vercel.
 
+
+## Desenvolvimento local integrado (Arch Linux)
+
+Na branch `feat/local-dev-integration`, execute:
+
+```bash
+./start-local.sh
+```
+
+Abra **http://localhost:5173**. A API responde em **http://localhost:8000/api/health**.
+O script procura portas livres próximas se houver conflito e imprime as URLs reais.
+Use `localhost` no navegador: o proxy recusa outros hosts/origens. Os dois serviços
+escutam somente em `127.0.0.1`, sem acesso pela rede local.
+
+`Ctrl+C` encerra ambos os serviços e solicita cancelamento dos trabalhos.
+Também é possível executar `./start-local.sh --background` e encerrar depois com
+`./stop-local.sh`. O controle de PID verifica a identidade do processo antes de
+sinalizá-lo; um lock impede duas instâncias. Logs: `.local/server.log` no modo
+background. Nenhuma configuração global é alterada.
+
+O inicializador reutiliza `.venv` ou o ambiente já existente em
+`../ShortForge_Local/.venv`. Se nenhum existir, cria `.venv` e instala
+`requirements.txt`. `SHORTFORGE_PYTHON=/caminho/python` permite escolher outro
+ambiente. FFmpeg, FFprobe e Tesseract precisam estar instalados no sistema.
+
+A interface chama o proxy local; este acrescenta uma chave aleatória privada ao
+consultar a API. A chave fica apenas em memória nos processos Python, sem arquivo
+público, armazenamento do navegador ou query string. Chamadas diretas às tarefas
+e downloads na porta 8000 exigem essa chave. Health e assets são públicos locais.
+CORS permite somente a origem do frontend impresso pelo inicializador.
+
+O modo controlado exige confirmação de direitos para cada criação. Comece com
+**um vídeo individual HTTPS autorizado de 30–120 segundos, com fala**, um corte
+de 30s e 720p. A UI inicia nesses valores; aceita até cinco cortes de 30–45s em
+720p. Metadados recusam vídeos longos, lives e tamanho conhecido acima de 128 MiB;
+o download tem limite de 128 MiB. Fontes de tamanho desconhecido não recebem uma
+garantia antecipada de tamanho. O yt-dlp ignora configuração global e não recebe
+cookies, proxy ou instruções para contornar restrições do YouTube.
+
+O processamento usa yt-dlp, seleção de trechos, detecção de facecam, Whisper
+CPU/int8, OCR português e FFmpeg reais. A detecção automática pode recusar um
+vídeo sem facecam/cena adequada; uma região manual pode ser informada pelo usuário.
+As legendas dependem de fala reconhecível; não são inventadas. Os arquivos ficam
+em `resultados-local/<id>/`, separados dos resultados anteriores. Cada MP4 pronto
+aparece com player e download; o ZIP fica disponível quando o pipeline o gerar.
+
+OCR português é obtido em `modelos/tessdata` com checksum verificado. Whisper
+usa o cache local; o primeiro uso de um modelo ainda não armazenado pode baixá-lo.
+Modelos, resultados, logs e ambiente virtual não entram no Git. O modo local
+não inicia Sandbox, não acessa Blob, não carrega `.env` e remove configuração de
+nuvem herdada antes de iniciar os serviços. Não há expiração automática de 24h
+para resultados locais; remova-os manualmente quando não precisar mais deles.
+
+Verificação atual: dependências importadas, OCR verificado, Whisper base carregado,
+46 testes Python deste repositório aprovados; navegador/HTTP reais no modo local.
+Isso **não homologa geração, reprodução nem download de um vídeo autorizado**:
+o link ainda precisa ser fornecido. Testes de regressão com mocks e mídia de teste
+não substituem essa execução de ponta a ponta.

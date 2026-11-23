@@ -43,14 +43,15 @@
           <form id="createForm">
             <label class="input-label" for="url">Link do vídeo do YouTube</label>
             <div class="input-row">
-              <input class="linkInput" id="url" type="url" required placeholder="https://youtu.be/..." autocomplete="url" value="https://youtu.be/yWvnOWILFk0">
+              <input class="linkInput" id="url" type="url" required placeholder="https://youtu.be/..." autocomplete="url">
               <button class="primary" type="submit" id="submit">Gerar Shorts <span aria-hidden="true">↗</span></button>
             </div>
+            <label class="disclaimer"><input type="checkbox" id="rightsConfirmed" required> Confirmo que possuo ou tenho autorização para processar este vídeo.</label>
             <p class="disclaimer">Use somente conteúdos que você tem autorização para recortar. A seleção automática não garante viralização ou monetização.</p>
             <details class="details"><summary>Configurações avançadas (opcional)</summary>
               <div class="optgrid">
-                <label class="opt" for="count">Quantidade de Shorts<select id="count"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></label>
-                <label class="opt" for="length">Duração alvo<select id="length"><option value="35">35 segundos</option><option value="45" selected>45 segundos</option><option value="55">55 segundos</option><option value="60">60 segundos</option></select></label>
+                <label class="opt" for="count">Quantidade de Shorts<select id="count"><option selected>1</option><option>3</option><option>5</option><option>10</option></select></label>
+                <label class="opt" for="length">Duração alvo<select id="length"><option value="30" selected>30 segundos</option><option value="35">35 segundos</option><option value="45">45 segundos</option><option value="55">55 segundos</option><option value="60">60 segundos</option></select></label>
                 <label class="opt" for="resolution">Qualidade<select id="resolution"><option value="720" selected>720 × 1280 · Rápido</option><option value="1080">1080 × 1920 · Alta</option></select></label>
                 <label class="opt" for="model">Qualidade das legendas<select id="model"><option value="tiny">Tiny · Rápido</option><option value="base" selected>Base · Equilibrado</option><option value="small">Small · Mais preciso, lento</option></select></label>
                 <label class="opt" for="facecam">Localização da facecam<select id="facecam"><option value="auto" selected>Automática</option><option value="superior-esquerdo">Canto superior esquerdo</option><option value="superior-direito">Canto superior direito</option><option value="inferior-esquerdo">Canto inferior esquerdo</option><option value="inferior-direito">Canto inferior direito</option></select></label>

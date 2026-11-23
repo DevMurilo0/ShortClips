@@ -21,7 +21,7 @@ ROOT=Path(__file__).resolve().parent
 OUT=ROOT/'resultados'
 HOST=os.getenv('SHORTFORGE_HOST','127.0.0.1')
 ALLOWED_ORIGINS={v.strip().rstrip('/') for v in os.getenv('SHORTFORGE_ALLOWED_ORIGINS','').split(',') if v.strip()}
-PORT=8765
+PORT=int(os.getenv('SHORTFORGE_PORT','8765'))
 JOBS={}
 WORKERS={}
 JOBS_LOCK=threading.Lock()
@@ -69,12 +69,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         p=urlparse(self.path).path
+        origin=self.headers.get('Origin','').rstrip('/')
+        if origin and origin not in ALLOWED_ORIGINS and origin != f'http://{self.headers.get("Host")}':
+            return self._json({'error':'Origem não permitida.'},403)
         if p in ('/','/index.html'):
             return self._asset(ROOT/'web'/'index.html')
         if p in ('/static/style.css','/static/app.js','/style.css','/app.js'):
             return self._asset(ROOT/'web'/p.rsplit('/',1)[-1])
         if p=='/config.js':
-            raw=('window.SHORTFORGE_API_URL='+json.dumps(os.getenv('SHORTFORGE_API_URL',''))+';').encode('utf-8')
+            raw=('window.SHORTFORGE_API_URL='+json.dumps(os.getenv('SHORTFORGE_API_URL',''))+';window.SHORTFORGE_LOCAL_CONTROLLED='+json.dumps(os.getenv('SHORTFORGE_LOCAL_CONTROLLED')=='1')+';').encode('utf-8')
             self._headers(content_type='text/javascript; charset=utf-8',length=len(raw))
             return self.wfile.write(raw)
         if p=='/api/health':
@@ -167,6 +170,8 @@ class Handler(BaseHTTPRequestHandler):
                     clip['status']='queued'; job.persist()
                 else:
                     url=validate_url(str(payload.get('url','')))
+                    if any(isinstance(payload.get(k), (bool, float, dict, list)) for k in ('count','length','resolution')):
+                        raise ValueError('Quantidade, duração e resolução devem ser números inteiros.')
                     count=int(payload.get('count',5)); length=int(payload.get('length',45))
                     resolution=int(payload.get('resolution',720)); facecam=str(payload.get('facecam','auto'))
                     model=str(payload.get('model','base'))
@@ -177,6 +182,11 @@ class Handler(BaseHTTPRequestHandler):
                     if model not in ('tiny','base','small'): raise ValueError('Modelo inválido.')
                     if facecam not in ('auto','superior-esquerdo','superior-direito','inferior-esquerdo','inferior-direito'):
                         raise ValueError('Posição da facecam inválida.')
+                    if os.getenv('SHORTFORGE_LOCAL_CONTROLLED')=='1':
+                        if payload.get('rights_confirmed') is not True:
+                            raise ValueError('Confirme que possui autorização para processar este vídeo.')
+                        if count > 5 or length > 45 or resolution != 720:
+                            raise ValueError('Modo local: até 5 Shorts de 30–45s em 720p.')
                     jid=uuid.uuid4().hex[:12]
                     job=Job(jid,url,count,length,resolution,facecam,model,OUT/jid,manual_box=manual)
                     job.persist(); JOBS[jid]=job

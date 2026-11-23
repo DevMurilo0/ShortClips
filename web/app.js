@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 let taskId=null, timer=null, polling=false;
 const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
-let apiBase=(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'').replace(/\/$/,'');
+let apiBase=(localMode?'':(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'')).replace(/\/$/,'');
 let apiKey=sessionStorage.getItem('shortforge_public_access_key')||'';
 let connected=localMode;
 function authHeaders(){return !localMode&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
@@ -104,6 +104,9 @@ function render(job){
         }catch(e){infoError(e.message);preview.disabled=false}
       };card.append(preview);
     }else if(localMode || clip.download_url){
+      if(localMode){
+        const video=document.createElement('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src=safePath(clip.name);video.style.width='100%';card.append(video);
+      }
       const a=document.createElement('a');a.className='download';a.href=localMode?safePath(clip.name):clip.download_url;a.download=clip.name;a.textContent='Baixar MP4 ↓';card.append(a);
     }
     area.appendChild(card);
@@ -132,7 +135,7 @@ $('createForm').addEventListener('submit',async event=>{
   if(!hasApi()){infoError('É necessário conectar um backend de processamento antes de gerar Shorts.');return;}
   $('submit').disabled=true; $('submit').textContent='Preparando...'; infoError('');
   try { manualBox(); } catch(e) { infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;return; }
-  const payload={url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:manualBox()};
+  const payload={rights_confirmed:$('rightsConfirmed').checked,url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:manualBox()};
   try{
     const r=await fetch(apiPath('/api/jobs'),{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(payload)});
     const data=await r.json();
@@ -140,6 +143,12 @@ $('createForm').addEventListener('submit',async event=>{
     render(data.job);startPolling();$('output').scrollIntoView({block:'nearest',behavior:'smooth'});
   }catch(e){infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;$('submit').textContent='Gerar Shorts ↗'}
 });
+if(localMode && window.SHORTFORGE_LOCAL_CONTROLLED){
+  document.querySelector('#createForm').previousElementSibling.textContent='Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
+  for(const [id,allowed] of Object.entries({count:['1','3','5'],length:['30','35','45'],resolution:['720']})){
+    for(const option of [...$(id).options])if(!allowed.includes(option.value))option.remove();
+  }
+}
 configureBackend();
 async function restoreLatest(){
   if(!hasApi())return;

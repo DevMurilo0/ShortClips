@@ -21,8 +21,11 @@ def validate_url(raw:str)->str:
     parsed=urlparse(raw.strip())
     host=(parsed.hostname or '').lower()
     valid=host in {'youtu.be','youtube.com','www.youtube.com','m.youtube.com','music.youtube.com'}
-    if parsed.scheme not in ('https','http') or not valid or parsed.username or parsed.password or parsed.port not in (None,80,443):
+    if parsed.scheme != 'https' or not valid or parsed.username or parsed.password or parsed.port not in (None,443):
         raise ValueError('Cole um link válido de um vídeo do YouTube.')
+    query=parse_qs(parsed.query,keep_blank_values=True)
+    if 'list' in query or 'index' in query or len(query.get('v',[]))>1:
+        raise ValueError('Envie um vídeo individual, sem playlist.')
     if host=='youtu.be':
         video_id=parsed.path.strip('/')
     elif parsed.path=='/watch':
@@ -118,7 +121,7 @@ def _load_whisper(model_name):
     try:
         from faster_whisper import WhisperModel
         # Bound CPU use; leave the interface and cancellation responsive.
-        return WhisperModel(model_name,device='cpu',compute_type='int8',cpu_threads=4,num_workers=1)
+        return WhisperModel(model_name,device='cpu',compute_type='int8',cpu_threads=2,num_workers=1)
     except Exception as e:
         raise RuntimeError('Não foi possível carregar o modelo de legendas. Verifique as dependências e o acesso ao modelo na primeira execução. '+str(e)) from e
 
