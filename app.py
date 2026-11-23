@@ -31,6 +31,24 @@ def allowed_browser_origin(origin: str) -> bool:
     return origin in ALLOWED_ORIGINS or (
         ALLOW_TEAM_PREVIEWS and bool(TEAM_PREVIEW_ORIGIN.fullmatch(origin))
     )
+
+
+def parse_single_byte_range(value: str, size: int) -> tuple[int, int]:
+    """Only one bounded bytes range is supported for HTML video playback."""
+    match=re.fullmatch(r'bytes=(\d*)-(\d*)',value)
+    if not match or not any(match.groups()) or size<=0:
+        raise ValueError('Intervalo inválido.')
+    before,after=match.groups()
+    if before:
+        start=int(before)
+        end=int(after) if after else size-1
+        if start>=size or end<start:
+            raise ValueError('Intervalo indisponível.')
+        return start,min(end,size-1)
+    suffix=int(after)
+    if suffix<=0:
+        raise ValueError('Intervalo inválido.')
+    return max(0,size-suffix),size-1
 JOBS={}
 WORKERS={}
 JOBS_LOCK=threading.Lock()
@@ -138,11 +156,32 @@ class Handler(BaseHTTPRequestHandler):
             with file.open('rb') as f:
                 inline = name.endswith('.mp4') and parse_qs(urlparse(self.path).query).get('inline')==['1']
                 disposition='inline' if inline else 'attachment'
-                self._headers(content_type='application/zip' if name.endswith('.zip') else ('video/mp4' if name.endswith('.mp4') else 'application/json'),
-                              length=os.fstat(f.fileno()).st_size,extra={'Content-Disposition':f'{disposition}; filename="{name}"'})
-                while b:=f.read(1024*256):
-                    try:self.wfile.write(b)
+                size=os.fstat(f.fileno()).st_size
+                media_type='application/zip' if name.endswith('.zip') else ('video/mp4' if name.endswith('.mp4') else 'application/json')
+                extra={'Content-Disposition':f'{disposition}; filename="{name}"'}
+                if name.endswith('.mp4'):
+                    extra['Accept-Ranges']='bytes'
+                status=200
+                start,end=0,size-1
+                if name.endswith('.mp4') and self.headers.get('Range'):
+                    try:
+                        start,end=parse_single_byte_range(self.headers['Range'],size)
+                    except ValueError:
+                        self._headers(416,content_type=media_type,length=0,
+                                      extra={'Content-Range':f'bytes */{size}'})
+                        return
+                    status=206
+                    extra['Content-Range']=f'bytes {start}-{end}/{size}'
+                self._headers(status,content_type=media_type,
+                              length=max(0,end-start+1),extra=extra)
+                f.seek(start)
+                remaining=end-start+1
+                while remaining>0:
+                    chunk=f.read(min(1024*256,remaining))
+                    if not chunk:break
+                    try:self.wfile.write(chunk)
                     except (BrokenPipeError,ConnectionResetError):break
+                    remaining-=len(chunk)
             return
         self._json({'error':'Página não encontrada'},404)
 
