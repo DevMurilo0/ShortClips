@@ -13,7 +13,7 @@ import webbrowser
 import os
 import re
 import signal
-from urllib.parse import urlparse, unquote
+from urllib.parse import urlparse, unquote, parse_qs
 
 from shortforge.pipeline import Job, execute, validate_url, validate_manual_box, restore_jobs
 
@@ -21,13 +21,33 @@ ROOT=Path(__file__).resolve().parent
 OUT=ROOT/'resultados'
 HOST=os.getenv('SHORTFORGE_HOST','127.0.0.1')
 ALLOWED_ORIGINS={v.strip().rstrip('/') for v in os.getenv('SHORTFORGE_ALLOWED_ORIGINS','').split(',') if v.strip()}
+# Accept only this user's exact ShortForge deployment pattern, never *.vercel.app.
+TEAM_PREVIEW_ORIGIN=re.compile(r'https://short-clips-[a-z0-9]+-murilo15\.vercel\.app')
+ALLOW_TEAM_PREVIEWS=os.getenv('SHORTFORGE_ALLOW_TEAM_PREVIEWS')=='1'
 PORT=int(os.getenv('SHORTFORGE_PORT','8765'))
+
+
+def allowed_browser_origin(origin: str) -> bool:
+    return origin in ALLOWED_ORIGINS or (
+        ALLOW_TEAM_PREVIEWS and bool(TEAM_PREVIEW_ORIGIN.fullmatch(origin))
+    )
 JOBS={}
 WORKERS={}
 JOBS_LOCK=threading.Lock()
 
 
 class Handler(BaseHTTPRequestHandler):
+    def _local_host_allowed(self):
+        # Limit DNS rebinding exposure: the browser must contact loopback,
+        # even when it loaded the static frontend from Vercel.
+        if not ALLOW_TEAM_PREVIEWS:
+            return True
+        host=self.headers.get('Host','')
+        if host not in (f'127.0.0.1:{PORT}',f'localhost:{PORT}',f'[::1]:{PORT}'):
+            self._json({'error':'Host local inválido.'},403)
+            return False
+        return True
+
     def _worker_authorized(self):
         secret=os.getenv('SHORTFORGE_WORKER_SECRET','').strip()
         if not secret:
@@ -49,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('X-Content-Type-Options','nosniff')
         if length is not None: self.send_header('Content-Length',str(length))
         origin=self.headers.get('Origin','').rstrip('/')
-        if origin and origin in ALLOWED_ORIGINS:
+        if origin and allowed_browser_origin(origin):
             self.send_header('Access-Control-Allow-Origin',origin)
             self.send_header('Vary','Origin')
         for k,v in (extra or {}).items(): self.send_header(k,v)
@@ -68,9 +88,10 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_GET(self):
+        if not self._local_host_allowed(): return
         p=urlparse(self.path).path
         origin=self.headers.get('Origin','').rstrip('/')
-        if origin and origin not in ALLOWED_ORIGINS and origin != f'http://{self.headers.get("Host")}':
+        if origin and not allowed_browser_origin(origin) and origin != f'http://{self.headers.get("Host")}':
             return self._json({'error':'Origem não permitida.'},403)
         if p in ('/','/index.html'):
             return self._asset(ROOT/'web'/'index.html')
@@ -81,7 +102,8 @@ class Handler(BaseHTTPRequestHandler):
             self._headers(content_type='text/javascript; charset=utf-8',length=len(raw))
             return self.wfile.write(raw)
         if p=='/api/health':
-            return self._json({'ok':True,'service':'ShortForge Local'})
+            return self._json({'ok':True,'service':'ShortForge Local',
+                               'mode':'local','ready':True})
         if (p.startswith('/api/jobs/') or p.startswith('/downloads/')) and not self._worker_authorized():
             return
         if p=='/api/jobs/latest':
@@ -114,8 +136,10 @@ class Handler(BaseHTTPRequestHandler):
             # Open first: an atomic ZIP replacement during a retry must not
             # change the body after Content-Length was measured.
             with file.open('rb') as f:
+                inline = name.endswith('.mp4') and parse_qs(urlparse(self.path).query).get('inline')==['1']
+                disposition='inline' if inline else 'attachment'
                 self._headers(content_type='application/zip' if name.endswith('.zip') else ('video/mp4' if name.endswith('.mp4') else 'application/json'),
-                              length=os.fstat(f.fileno()).st_size,extra={'Content-Disposition':f'attachment; filename="{name}"'})
+                              length=os.fstat(f.fileno()).st_size,extra={'Content-Disposition':f'{disposition}; filename="{name}"'})
                 while b:=f.read(1024*256):
                     try:self.wfile.write(b)
                     except (BrokenPipeError,ConnectionResetError):break
@@ -123,18 +147,23 @@ class Handler(BaseHTTPRequestHandler):
         self._json({'error':'Página não encontrada'},404)
 
     def do_OPTIONS(self):
+        if not self._local_host_allowed(): return
         origin=self.headers.get('Origin','').rstrip('/')
-        if origin not in ALLOWED_ORIGINS:
+        if not allowed_browser_origin(origin):
             return self._json({'error':'Origem não permitida.'},403)
-        self._headers(204,length=0,extra={'Access-Control-Allow-Methods':'GET, POST, OPTIONS',
-                                         'Access-Control-Allow-Headers':'Content-Type'})
+        extras={'Access-Control-Allow-Methods':'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers':'Content-Type'}
+        if self.headers.get('Access-Control-Request-Private-Network','').lower()=='true':
+            extras['Access-Control-Allow-Private-Network']='true'
+        self._headers(204,length=0,extra=extras)
 
     def do_POST(self):
+        if not self._local_host_allowed(): return
         if not self._worker_authorized():
             return
         origin=self.headers.get('Origin','').rstrip('/')
         same_origin=f'http://{self.headers.get("Host")}'
-        if origin and origin!=same_origin and origin not in ALLOWED_ORIGINS:
+        if origin and origin!=same_origin and not allowed_browser_origin(origin):
             return self._json({'error':'Origem não permitida.'},403)
         route=urlparse(self.path).path
         if route!='/api/jobs' and not re.fullmatch(r'/api/jobs/[a-f0-9]+/(?:cancel|retry)',route):
