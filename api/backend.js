@@ -7,13 +7,19 @@ function createHandler(upstreamFetch = fetch) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const env = process.env;
-    if (env.VERCEL_ENV !== 'preview') {
-      return res.status(503).json({error:'Integração de Preview não habilitada.'});
+    const preview = env.VERCEL_ENV === 'preview';
+    const production = env.VERCEL_ENV === 'production' &&
+      env.SHORTFORGE_OWNER_PRODUCTION_ENABLED === '1';
+    if (!preview && !production) {
+      return res.status(503).json({error:'Acesso privado do proprietário não habilitado neste ambiente.'});
     }
-    // Aceitar somente o host imutável do Preview protegido, nunca Production.
-    const deploymentHost = String(env.VERCEL_URL || req.headers.host || '').toLowerCase();
-    if (!/^short-clips-[a-z0-9]+-murilo15\.vercel\.app$/.test(deploymentHost)) {
-      return res.status(503).json({error:'Somente o Preview protegido pode acionar o motor.'});
+    // Production only after Vercel Authentication protects All Deployments.
+    // This opt-in is NOT a substitute for Vercel Authentication.
+    const deploymentHost = String(req.headers.host || env.VERCEL_URL || '').toLowerCase();
+    const validFrontend = /^short-clips-[a-z0-9]+-murilo15\.vercel\.app$/.test(deploymentHost) ||
+      (production && deploymentHost === 'short-clips-tan.vercel.app');
+    if (!validFrontend) {
+      return res.status(503).json({error:'Domínio do ShortForge não autorizado.'});
     }
     const expectedOrigin = 'https://' + deploymentHost;
     const origin = req.headers.origin;
@@ -35,13 +41,15 @@ function createHandler(upstreamFetch = fetch) {
     }
     // A admissão exige opt-in privado independente de conectar/consultar a API.
     // O backend ainda impõe uma única tarefa, fonte autorizada e VM de 10 minutos.
-    if (createJob && env.SHORTFORGE_PREVIEW_ADMISSION !== '1') {
-      return res.status(503).json({error:'Geração pausada: ainda falta ativar a homologação autorizada.'});
+    const admissionReady = preview ? env.SHORTFORGE_PREVIEW_ADMISSION === '1' :
+      env.SHORTFORGE_PRODUCTION_ADMISSION === '1';
+    if (createJob && !admissionReady) {
+      return res.status(503).json({error:'Geração pausada até confirmar a franquia e o processamento real.'});
     }
     let body;
     if (req.method === 'POST') {
       if (origin !== expectedOrigin) {
-        return res.status(403).json({error:'A geração exige acesso pelo Preview autenticado.'});
+        return res.status(403).json({error:'A geração exige acesso pelo ShortForge autenticado.'});
       }
       if (String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json' ||
           !req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
@@ -54,12 +62,18 @@ function createHandler(upstreamFetch = fetch) {
       if (createJob) {
         const j = req.body;
         const box = j.manual_box;
-        if (j.rights_confirmed !== true || j.count !== 1 || j.length !== 30 || j.resolution !== 720 ||
+        const validBox = box == null || (Array.isArray(box) && box.length === 4 &&
+          box.every(v=>typeof v === 'number' && Number.isFinite(v)) &&
+          box[0]>=0 && box[1]>=0 && box[2]>0 && box[3]>0 &&
+          box[0]+box[2]<=100 && box[1]+box[3]<=100);
+        const validPreviewBox = !preview || Array.isArray(box);
+        const validBudget = preview ? (j.count===1 && j.length===30) :
+          (Number.isInteger(j.count) && j.count>=1 && j.count<=3 &&
+           Number.isInteger(j.length) && j.length>=30 && j.length<=45);
+        if (j.rights_confirmed !== true || !validBudget || j.resolution !== 720 ||
             typeof j.url !== 'string' || j.url.length > 2048 ||
-            !Array.isArray(box) || box.length !== 4 || !box.every(Number.isFinite) ||
-            box[0] < 0 || box[1] < 0 || box[2] <= 0 || box[3] <= 0 ||
-            box[0] + box[2] > 100 || box[1] + box[3] > 100) {
-          return res.status(400).json({error:'Homologação: apenas um Short de 30s em 720p, com região manual e vídeo autorizado.'});
+            !validBox || !validPreviewBox) {
+          return res.status(400).json({error:'Pedido fora dos limites de processamento autorizado (720p, até 3 Shorts de 30–45s).'});
         }
       }
     }
@@ -68,22 +82,25 @@ function createHandler(upstreamFetch = fetch) {
       base = new URL(env.SHORTFORGE_PUBLIC_API_URL);
       if (base.protocol !== 'https:' || base.username || base.password || base.port ||
           base.pathname !== '/' || base.search || base.hash ||
-          !/^backend-short-clips-[a-z0-9]+-murilo15\.vercel\.app$/.test(base.hostname)) throw Error();
+          !(preview ? /^backend-short-clips-[a-z0-9]+-murilo15\.vercel\.app$/.test(base.hostname) :
+            base.hostname === 'backend-short-clips.vercel.app')) throw Error();
     } catch {
-      return res.status(503).json({error:'Deployment Preview do backend não configurado.'});
+      return res.status(503).json({error:'Backend privado não configurado para este ambiente.'});
     }
-    const key = env.SHORTFORGE_PREVIEW_ACCESS_KEY;
-    const share = env.SHORTFORGE_BACKEND_PREVIEW_SHARE;
-    if (!key || key.length < 32 || !share || key.includes('[SENSITIVE]') || share.includes('[SENSITIVE]')) {
-      return res.status(503).json({error:'Acesso privado ao backend não configurado.'});
+    const key = preview ? env.SHORTFORGE_PREVIEW_ACCESS_KEY : env.SHORTFORGE_OWNER_ACCESS_KEY;
+    const share = preview ? env.SHORTFORGE_BACKEND_PREVIEW_SHARE : '';
+    const bypass = env.SHORTFORGE_BACKEND_PROTECTION_BYPASS || '';
+    if (!key || key.length < 32 || key.includes('[SENSITIVE]') ||
+        (!share && !bypass) || share.includes('[SENSITIVE]') || bypass.includes('[SENSITIVE]')) {
+      return res.status(503).json({error:'Credenciais privadas entre site e backend não configuradas.'});
     }
     const resource = new URL(path, base);
     const target = new URL(resource);
-    // The share is scoped to this immutable deployment, never a project-wide bypass.
-    // It stays server-side; no Location, cookies or upstream URLs reach the browser.
-    target.searchParams.set('_vercel_share', share);
+    // All bypass/share credentials remain exclusively in the serverless function.
+    if (share) target.searchParams.set('_vercel_share', share);
     try {
       const headers = {Accept:'application/json',Authorization:'Bearer ' + key};
+      if (bypass) headers['x-vercel-protection-bypass'] = bypass;
       if (req.method === 'POST') headers['Content-Type'] = 'application/json';
       let response = await upstreamFetch(target, {
         method:req.method, redirect:'manual', signal:AbortSignal.timeout(15000),
@@ -110,7 +127,7 @@ function createHandler(upstreamFetch = fetch) {
       const data = JSON.parse(text);
       if (path === '/api/health' && data && typeof data === 'object' && data.ok === true) {
         // A UI nunca oferece Gerar enquanto a admissão estiver desligada.
-        data.admission_ready = data.ready === true && env.SHORTFORGE_PREVIEW_ADMISSION === '1';
+        data.admission_ready = data.ready === true && admissionReady;
       }
       return res.status(response.status).json(data);
     } catch {
