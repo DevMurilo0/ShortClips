@@ -7,12 +7,12 @@ const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
 const localWorkerMode=!localMode;
 const localProcessing=localMode||localWorkerMode;
 const LOCAL_WORKER_URL='http://127.0.0.1:8765';
-let apiBase=localWorkerMode?LOCAL_WORKER_URL:'';
+let apiBase=localWorkerMode?(localStorage.getItem('shortforge_worker_url')||LOCAL_WORKER_URL):'';
 const previewProxy=!localWorkerMode&&window.SHORTFORGE_PREVIEW_PROXY===true;
 let apiKey='';
 let connected=localMode;
 function authHeaders(){return {};}
-function apiPath(path){return localWorkerMode?LOCAL_WORKER_URL+path:(previewProxy?'/api/backend?path='+encodeURIComponent(path):apiBase+path);}
+function apiPath(path){return localWorkerMode?apiBase+path:(previewProxy?'/api/backend?path='+encodeURIComponent(path):apiBase+path);}
 function hasApi(){return connected;}
 function apiNotice(message){const el=$('backendStatus');if(el)el.textContent=message;}
 async function connectPreview(){
@@ -34,33 +34,49 @@ async function connectPreview(){
   $('saveBackend').addEventListener('click',check);
   await check();
 }
+function parseWorkerEndpoint(raw){
+  let url;
+  try{url=new URL(raw.trim());}catch{throw Error('Informe um endereço de processador válido.');}
+  const isLoopback=url.protocol==='http:' && url.hostname==='127.0.0.1' && url.port==='8765';
+  const isTailnet=url.protocol==='https:' && !url.port &&
+    /^[a-z0-9-]+\.[a-z0-9-]+\.ts\.net$/.test(url.hostname);
+  if((!isLoopback&&!isTailnet)||url.username||url.password||url.pathname!=='/'||url.search||url.hash){
+    throw Error('Use http://127.0.0.1:8765 neste PC ou a URL HTTPS do Tailscale Serve do seu computador.');
+  }
+  return url.origin;
+}
 async function connectLocalWorker(){
   const panel=$('backendPanel');
   panel.hidden=false;
   panel.querySelector('h2').textContent='Processamento no seu computador';
-  panel.querySelector('.hint').textContent='O site está na Vercel, mas CPU, RAM, vídeos e legendas ficam no seu PC. Inicie o worker local e depois verifique a conexão.';
-  $('backendURL').hidden=true;
-  document.querySelector('label[for="backendURL"]').hidden=true;
+  panel.querySelector('.hint').textContent='No PC, use http://127.0.0.1:8765. No celular, conecte o Tailscale e informe a URL HTTPS do Tailscale Serve do seu PC. CPU, RAM e vídeos continuam no computador.';
+  $('backendURL').hidden=false;
+  $('backendURL').readOnly=false;
+  $('backendURL').value=apiBase;
+  document.querySelector('label[for="backendURL"]').hidden=false;
+  document.querySelector('label[for="backendURL"]').textContent='Endereço do processador (PC ou celular)';
   $('backendAccessKey').hidden=true;
   document.querySelector('label[for="backendAccessKey"]').hidden=true;
-  panel.querySelector('.disclaimer').textContent='Sem chave de acesso e sem Vercel Sandbox. O computador deve permanecer ligado durante a geração.';
-  $('saveBackend').textContent='Verificar meu computador';
+  panel.querySelector('.disclaimer').textContent='Sem chave de API e sem Vercel Sandbox. No celular, basta estar conectado à mesma rede privada Tailscale do PC; seu computador deve permanecer ligado.';
+  $('saveBackend').textContent='Conectar este dispositivo';
   const check=async()=>{
     connected=false;
     $('submit').disabled=true;
-    apiNotice('Procurando o processador local em '+LOCAL_WORKER_URL+'...');
     try{
-      const response=await fetch(apiPath('/api/health'),{mode:'cors',cache:'no-store',signal:AbortSignal.timeout(6500)});
+      apiBase=parseWorkerEndpoint($('backendURL').value);
+      apiNotice('Procurando o processador em '+apiBase+'...');
+      const response=await fetch(apiPath('/api/health'),{mode:'cors',cache:'no-store',signal:AbortSignal.timeout(10000)});
       const data=await response.json();
       if(!response.ok||data.ok!==true||data.service!=='ShortForge Local'){
-        throw Error('O serviço local não respondeu como ShortForge.');
+        throw Error('O serviço não respondeu como ShortForge.');
       }
       connected=true;
+      localStorage.setItem('shortforge_worker_url',apiBase);
       $('submit').disabled=false;
-      apiNotice('Computador conectado! Os Shorts serão processados neste PC, usando sua CPU e RAM.');
+      apiNotice('Computador conectado! Os Shorts serão gerados usando a CPU e RAM do PC.');
       await restoreLatest();
     }catch(error){
-      apiNotice('Processador local indisponível. Inicie ./start-hybrid-worker.sh na pasta ShortClips e clique em “Verificar meu computador”. O navegador pode solicitar permissão de acesso à rede local.');
+      apiNotice('Conexão não estabelecida: '+error.message+' Verifique se o programa está rodando no PC; no celular, confira se o Tailscale está conectado.');
     }
   };
   $('saveBackend').addEventListener('click',check);
