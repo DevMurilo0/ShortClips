@@ -30,7 +30,16 @@ a rede local, autorize apenas para o site ShortForge de sua confiança.
 
 O processador local aceita vídeos de até **6 horas** (respeitando os limites
 de recursos do seu PC); a restrição de 2 minutos era somente do ensaio
-Vercel Sandbox. Veja [o guia completo](docs/VERCEL-LOCAL-WORKER.md).
+Vercel Sandbox.
+
+**Celular também funciona pelo navegador**, mesmo em 4G/5G, conectando
+o PC e o celular pelo Tailscale. No PC, instale/ative o Tailscale,
+execute `bash ./start-hybrid-worker.sh` e em outro terminal
+`tailscale serve 8765`. No celular, conecte o aplicativo Tailscale
+à mesma rede privada, abra o site da Vercel e informe uma vez o
+endereço HTTPS `*.ts.net` que o comando imprimiu. O site permite
+prévia e downloads, mas a renderização acontece no PC ligado.
+Veja [o guia completo](docs/VERCEL-LOCAL-WORKER.md).
 
 **Aviso:** o código desta branch precisa ser publicado em um **novo
 Preview** para alterar o site online; os deployments anteriores continuarão
