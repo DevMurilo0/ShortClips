@@ -21,3 +21,13 @@ test('Production frontend uses private same-origin function; not third-party API
  assert.match(app,/\/api\/backend\?path=/);
  assert.match(app,/function authHeaders\(\)\{return !localMode&&!previewProxy&&apiKey/);
 });
+
+test('merged main HTML retains usage panel, permission and 30-second source options',()=>{
+ const html=readFileSync(path.join(__dirname,'..','web','index.html'),'utf8');
+ const ids=[...new Set([...app.matchAll(/\$\('([^']+)'\)/g)].map(m=>m[1]))];
+ for(const id of ids)assert.match(html,new RegExp('id=["\\x27]'+id+'["\\x27]'), 'missing form element '+id);
+ assert.match(html,/id="usagePanel"/);
+ assert.match(html,/id="rightsConfirmed"[^>]*required/);
+ assert.match(html,/value="30" selected>30 segundos/);
+ assert.doesNotMatch(html,/value="https:\/\/youtu\.be\/yWvnOWILFk0"/);
+});
