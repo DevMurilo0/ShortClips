@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import http.client
 from http.server import ThreadingHTTPServer
+from pathlib import Path
+from types import SimpleNamespace
+from tempfile import TemporaryDirectory
 import threading
 import unittest
 from unittest.mock import patch
@@ -73,6 +76,35 @@ class HybridWorkerHttpTests(unittest.TestCase):
                 })
         self.assertEqual(denied_origin, 403)
         self.assertEqual(denied_host, 403)
+
+    def test_media_byte_ranges_support_inline_video_and_reject_invalid_ranges(self):
+        self.assertEqual(app.parse_single_byte_range('bytes=0-3',10),(0,3))
+        self.assertEqual(app.parse_single_byte_range('bytes=-4',10),(6,9))
+        self.assertEqual(app.parse_single_byte_range('bytes=8-',10),(8,9))
+        with self.assertRaises(ValueError):
+            app.parse_single_byte_range('bytes=15-17',10)
+        with TemporaryDirectory() as temporary:
+            folder=Path(temporary)
+            (folder/'short_01.mp4').write_bytes(b'0123456789')
+            job=SimpleNamespace(destination=folder,
+                clips=[{'status':'ready','name':'short_01.mp4','number':1}],
+                zip_name=None)
+            url='/downloads/abc123/short_01.mp4?inline=1'
+            with patch.object(app,'PORT',self.port), \\
+                 patch.object(app,'ALLOW_TEAM_PREVIEWS',True), \\
+                 patch.dict(app.JOBS,{'abc123':job}), \\
+                 patch.dict('os.environ',{'SHORTFORGE_WORKER_SECRET':''}):
+                status,headers,body=self.request('GET',url,
+                    {'Origin':ALLOWED,'Range':'bytes=2-5'})
+                denied,invalid_headers,_=self.request('GET',url,
+                    {'Origin':ALLOWED,'Range':'bytes=20-30'})
+            self.assertEqual(status,206)
+            self.assertEqual(body,b'2345')
+            self.assertEqual(headers.get('Content-Range'),'bytes 2-5/10')
+            self.assertEqual(headers.get('Content-Length'),'4')
+            self.assertIn('inline',headers.get('Content-Disposition',''))
+            self.assertEqual(denied,416)
+            self.assertEqual(invalid_headers.get('Content-Range'),'bytes */10')
 
     def test_production_origin_allowlist_without_wildcard(self):
         with patch.object(app, "PORT", self.port), patch.object(app, "ALLOW_TEAM_PREVIEWS", True):
