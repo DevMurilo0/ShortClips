@@ -3,15 +3,36 @@ const $=id=>document.getElementById(id);
 let taskId=null, timer=null, polling=false;
 const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
 let apiBase=(localMode?'':(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'')).replace(/\/$/,'');
+const previewProxy=window.SHORTFORGE_PREVIEW_PROXY===true;
 let apiKey=sessionStorage.getItem('shortforge_public_access_key')||'';
 let connected=localMode;
 function authHeaders(){return !localMode&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
-function apiPath(path){return apiBase+path;}
+function apiPath(path){return previewProxy?'/api/backend?path='+encodeURIComponent(path):apiBase+path;}
 function hasApi(){return connected;}
 function apiNotice(message){const el=$('backendStatus');if(el)el.textContent=message;}
+async function connectPreview(){
+  $('backendURL').value=apiBase;$('backendURL').readOnly=true;
+  $('backendAccessKey').hidden=true;
+  document.querySelector('label[for="backendAccessKey"]').hidden=true;
+  $('backendPanel').querySelector('.disclaimer').hidden=true;
+  $('saveBackend').textContent='Verificar conexão';
+  $('backendPanel').querySelector('.hint').textContent='Este Preview está conectado ao backend publicado. A geração permanece pausada até confirmar a franquia gratuita e homologar um vídeo autorizado.';
+  const check=async()=>{
+    connected=false;$('submit').disabled=true;apiNotice('Consultando o backend Preview...');
+    try{
+      const response=await fetch(apiPath('/api/health'),{signal:AbortSignal.timeout(20000)});
+      const data=await response.json();
+      if(!response.ok || data.ok!==true)throw Error(data.error||'API indisponível.');
+      apiNotice(data.ready===false?'Backend Preview conectado. Geração pausada para homologação; nenhuma tarefa será iniciada.':'Backend acessível. A admissão deste Preview permanece pausada.');
+    }catch(error){apiNotice('Falha ao consultar o backend: '+error.message);}
+  };
+  $('saveBackend').addEventListener('click',check);
+  await check();
+}
 async function configureBackend(){
   const panel=$('backendPanel');
   if(!panel)return;
+  if(previewProxy){panel.hidden=false;await connectPreview();return;}
   panel.hidden=localMode;
   if(localMode)return;
   $('backendURL').value=apiBase;
@@ -151,9 +172,11 @@ $('createForm').addEventListener('submit',async event=>{
     render(data.job);startPolling();$('output').scrollIntoView({block:'nearest',behavior:'smooth'});
   }catch(e){submissionError(e.message)}
 });
-if(localMode && window.SHORTFORGE_LOCAL_CONTROLLED){
-  document.querySelector('#createForm').previousElementSibling.textContent='Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
-  for(const [id,allowed] of Object.entries({count:['1','3','5'],length:['30','35','45'],resolution:['720']})){
+if((localMode && window.SHORTFORGE_LOCAL_CONTROLLED) || previewProxy){
+  document.querySelector('#createForm').previousElementSibling.textContent=previewProxy?'Preview online: confira as configurações. A geração está pausada até a homologação de uma fonte autorizada.':'Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
+  const permitted={count:['1','3','5'],length:['30','35','45'],resolution:['720']};
+  if(previewProxy)permitted.model=['base'];
+  for(const [id,allowed] of Object.entries(permitted)){
     for(const option of [...$(id).options])if(!allowed.includes(option.value))option.remove();
   }
 }

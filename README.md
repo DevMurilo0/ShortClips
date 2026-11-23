@@ -234,3 +234,32 @@ Verificação atual: dependências importadas, OCR verificado, Whisper base carr
 Isso **não homologa geração, reprodução nem download de um vídeo autorizado**:
 o link ainda precisa ser fornecido. Testes de regressão com mocks e mídia de teste
 não substituem essa execução de ponta a ponta.
+
+## Preview online protegido
+
+O projeto Vercel existente é `murilo15/short-clips`. A branch
+`feat/local-dev-integration` publica a interface e a Function Node `api/backend.js`;
+Python, modelos, mídia e scripts locais não fazem parte do pacote de publicação.
+O build usa `SHORTFORGE_PUBLIC_API_URL` com a URL imutável real do backend Preview.
+
+`SHORTFORGE_PREVIEW_PROXY=1` habilita acesso à API pela própria origem do frontend,
+sem depender de localhost ou de cookies de outro domínio. A Function é exclusiva
+de Preview e recebe, apenas no servidor, `SHORTFORGE_PREVIEW_ACCESS_KEY` e
+`SHORTFORGE_BACKEND_PREVIEW_SHARE`. O segundo segredo é restrito ao deployment
+imutável do backend; não altera a proteção do projeto nem libera Production.
+A troca de cookie de compartilhamento só segue um redirect para o mesmo recurso
+no mesmo deployment. Nenhum segredo, cookie ou redirect desse fluxo é enviado ao
+navegador. `config.js` contém apenas o domínio público e a flag de integração.
+
+O proxy recusa origens externas e destinos arbitrários, impede cache e mantém
+criação/repetição/cancelamento de tarefas pausados. O backend também é publicado
+com `SHORTFORGE_ENGINE=disabled`. A UI consulta o health real, informa a pausa e
+não habilita o botão de geração. Consultas de tarefas/downloads mostram a resposta
+real de indisponibilidade; não existem resultados artificiais para demonstração.
+A geração só poderá ser homologada depois de receber vídeo autorizado e comprovar
+franquia gratuita de Sandbox/Blob. Os Previews continuam com autenticação Vercel.
+
+`npm test` verifica a fronteira de segurança do proxy; `npm run build` produz a
+interface estática. Testes com fetch simulado são regressões unitárias, sem valor
+como prova de integração publicada. Essa prova exige consultar os deployments
+reais e navegar na URL publicada.

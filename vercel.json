@@ -17,5 +17,12 @@
         }
       ]
     }
-  ]
+  ],
+  "installCommand": "npm ci --omit=dev",
+  "functions": {
+    "api/backend.js": {
+      "maxDuration": 30,
+      "excludeFiles": "{validation/**,resultados*/**,modelos/**,shortforge/**,tests/**,docs/**,.env*,.vercel/**,**/__pycache__/**,**/*.mp4,**/*.zip}"
+    }
+  }
 }
