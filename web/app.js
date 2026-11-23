@@ -46,6 +46,14 @@ async function configureBackend(){
 function asText(element, text) {element.textContent=String(text??'');}
 function infoError(message) {$('jobErrors').textContent=message;}
 function safePath(name) {return apiPath('/downloads/'+encodeURIComponent(taskId)+'/'+encodeURIComponent(name));}
+function submissionError(message){
+  infoError(message);$('output').classList.add('active');
+  $('outputTitle').textContent='Não foi possível iniciar';
+  $('statusTag').textContent='NÃO INICIADO';
+  $('statusText').textContent='Corrija os dados e tente novamente.';
+  $('submit').disabled=false;$('submit').textContent='Gerar Shorts ↗';
+}
+
 function remoteDownloadLink(endpoint, name, label, className='download') {
   const button=document.createElement('button');button.type='button';button.className=className;button.textContent=label;
   button.onclick=async()=>{
@@ -134,14 +142,14 @@ $('createForm').addEventListener('submit',async event=>{
   event.preventDefault();
   if(!hasApi()){infoError('É necessário conectar um backend de processamento antes de gerar Shorts.');return;}
   $('submit').disabled=true; $('submit').textContent='Preparando...'; infoError('');
-  try { manualBox(); } catch(e) { infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;return; }
+  try { manualBox(); } catch(e) { submissionError(e.message);return; }
   const payload={rights_confirmed:$('rightsConfirmed').checked,url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:manualBox()};
   try{
     const r=await fetch(apiPath('/api/jobs'),{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(payload)});
     const data=await r.json();
     if(!r.ok)throw new Error(data.error||'Não foi possível iniciar.');
     render(data.job);startPolling();$('output').scrollIntoView({block:'nearest',behavior:'smooth'});
-  }catch(e){infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;$('submit').textContent='Gerar Shorts ↗'}
+  }catch(e){submissionError(e.message)}
 });
 if(localMode && window.SHORTFORGE_LOCAL_CONTROLLED){
   document.querySelector('#createForm').previousElementSibling.textContent='Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
