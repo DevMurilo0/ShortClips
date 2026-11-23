@@ -4,6 +4,6 @@
   "version": "0.1.0",
   "scripts": {
     "build": "node scripts/build_static.mjs",
-    "test": "node --test tests/preview-proxy.test.cjs"
+    "test": "node --test tests/*.test.cjs"
   }
 }
