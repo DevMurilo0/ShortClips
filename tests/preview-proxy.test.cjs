@@ -134,7 +134,11 @@ test('Production permits bounded owner-only automatic facecam jobs, never unrest
    response:new Response(JSON.stringify({job:{id:'a'.repeat(32),status:'queued'}}),
      {status:201,headers:{'content-type':'application/json'}})});
  assert.equal(accepted.res.code,201);assert.equal(accepted.seen.length,1);
- for(const bad of [{count:5},{resolution:1080},{length:60},{rights_confirmed:false}]){
+ const five=await call({method:'POST',path:'/api/jobs',headers,body:{...body,count:5},env,
+   response:new Response(JSON.stringify({job:{id:'b'.repeat(32),status:'queued'}}),
+     {status:201,headers:{'content-type':'application/json'}})});
+ assert.equal(five.res.code,201);assert.equal(five.seen.length,1);
+ for(const bad of [{count:10},{resolution:1080},{length:60},{rights_confirmed:false}]){
   const blocked=await call({method:'POST',path:'/api/jobs',headers,body:{...body,...bad},env});
   assert.equal(blocked.res.code,400);assert.equal(blocked.seen.length,0);
  }
