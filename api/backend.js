@@ -68,12 +68,12 @@ function createHandler(upstreamFetch = fetch) {
           box[0]+box[2]<=100 && box[1]+box[3]<=100);
         const validPreviewBox = !preview || Array.isArray(box);
         const validBudget = preview ? (j.count===1 && j.length===30) :
-          (Number.isInteger(j.count) && j.count>=1 && j.count<=3 &&
+          (Number.isInteger(j.count) && j.count>=1 && j.count<=5 &&
            Number.isInteger(j.length) && j.length>=30 && j.length<=45);
         if (j.rights_confirmed !== true || !validBudget || j.resolution !== 720 ||
             typeof j.url !== 'string' || j.url.length > 2048 ||
             !validBox || !validPreviewBox) {
-          return res.status(400).json({error:'Pedido fora dos limites de processamento autorizado (720p, até 3 Shorts de 30–45s).'});
+          return res.status(400).json({error:'Pedido fora dos limites de processamento autorizado (720p, até 5 Shorts de 30–45s).'});
         }
       }
     }
