@@ -11,6 +11,31 @@ Projeto com interface web local. Você abre uma vez no VS Code, cola um link e c
 5. Gerar legendas em português com Faster-Whisper (local), montar vídeos **9:16**, com áudio original.
 6. Disponibilizar MP4s e ZIP, somente se a duração final estiver entre 30 e 60 segundos, com áudio e decodificação válidos.
 
+## Modo híbrido — site na Vercel, processamento no próprio PC
+
+A branch `feat/vercel-ui-local-worker` permite abrir o **site hospedado
+na Vercel** e gerar Shorts usando **CPU e RAM do seu computador**, sem
+Vercel Sandbox, Vercel Blob ou chave de processamento em nuvem.
+
+No Arch Linux, no diretório deste repositório, execute:
+
+```bash
+bash ./start-hybrid-worker.sh
+```
+
+Deixe o programa aberto e então acesse o frontend atualizado da Vercel
+**no mesmo computador**. O site verificará automaticamente o
+`http://127.0.0.1:8765`; se o navegador solicitar permissão para acessar
+a rede local, autorize apenas para o site ShortForge de sua confiança.
+
+O processador local aceita vídeos de até **6 horas** (respeitando os limites
+de recursos do seu PC); a restrição de 2 minutos era somente do ensaio
+Vercel Sandbox. Veja [o guia completo](docs/VERCEL-LOCAL-WORKER.md).
+
+**Aviso:** o código desta branch precisa ser publicado em um **novo
+Preview** para alterar o site online; os deployments anteriores continuarão
+com a configuração cloud desativada até a nova publicação.
+
 ## Requisitos
 
 - Linux Arch / derivados (também funciona em outras distribuições que tenham Python 3.10+ e FFmpeg com libass).
