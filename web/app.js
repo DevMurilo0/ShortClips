@@ -6,24 +6,31 @@ let apiBase=(localMode?'':(window.SHORTFORGE_API_URL||localStorage.getItem('shor
 const previewProxy=window.SHORTFORGE_PREVIEW_PROXY===true;
 let apiKey=sessionStorage.getItem('shortforge_public_access_key')||'';
 let connected=localMode;
-function authHeaders(){return !localMode&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
+function authHeaders(){return !localMode&&!previewProxy&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
 function apiPath(path){return previewProxy?'/api/backend?path='+encodeURIComponent(path):apiBase+path;}
 function hasApi(){return connected;}
 function apiNotice(message){const el=$('backendStatus');if(el)el.textContent=message;}
 async function connectPreview(){
-  $('backendURL').value=apiBase;$('backendURL').readOnly=true;
+  $('backendPanel').querySelector('h2').textContent='Motor de processamento';
+  $('backendURL').hidden=true;
+  document.querySelector('label[for="backendURL"]').hidden=true;
   $('backendAccessKey').hidden=true;
   document.querySelector('label[for="backendAccessKey"]').hidden=true;
   $('backendPanel').querySelector('.disclaimer').hidden=true;
   $('saveBackend').textContent='Verificar conexão';
-  $('backendPanel').querySelector('.hint').textContent='Este Preview está conectado ao backend publicado. A geração permanece pausada até confirmar a franquia gratuita e homologar um vídeo autorizado.';
+  $('backendPanel').querySelector('.hint').textContent='Acesso pela sua conta Vercel, sem digitar chave. A geração só será liberada quando o backend Preview estiver autorizado e pronto.';
   const check=async()=>{
     connected=false;$('submit').disabled=true;apiNotice('Consultando o backend Preview...');
     try{
       const response=await fetch(apiPath('/api/health'),{signal:AbortSignal.timeout(20000)});
       const data=await response.json();
       if(!response.ok || data.ok!==true)throw Error(data.error||'API indisponível.');
-      apiNotice(data.ready===false?'Backend Preview conectado. Geração pausada para homologação; nenhuma tarefa será iniciada.':'Backend acessível. A admissão deste Preview permanece pausada.');
+      connected=data.ready===true && data.admission_ready===true;
+      $('submit').disabled=!connected;
+      apiNotice(connected
+        ? 'Motor pronto para uma geração autorizada de 30 segundos em 720p.'
+        : 'Backend conectado, mas a geração ainda não foi ativada neste Preview.');
+      if(connected)await restoreLatest();
     }catch(error){apiNotice('Falha ao consultar o backend: '+error.message);}
   };
   $('saveBackend').addEventListener('click',check);
@@ -164,7 +171,12 @@ $('createForm').addEventListener('submit',async event=>{
   if(!hasApi()){infoError('É necessário conectar um backend de processamento antes de gerar Shorts.');return;}
   $('submit').disabled=true; $('submit').textContent='Preparando...'; infoError('');
   try { manualBox(); } catch(e) { submissionError(e.message);return; }
-  const payload={rights_confirmed:$('rightsConfirmed').checked,url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:manualBox()};
+  const selectedBox=manualBox();
+  if(previewProxy && !selectedBox){
+    submissionError('Para o primeiro teste online, informe a região manual da facecam (x y largura altura).');
+    return;
+  }
+  const payload={rights_confirmed:$('rightsConfirmed').checked,url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:selectedBox};
   try{
     const r=await fetch(apiPath('/api/jobs'),{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(payload)});
     const data=await r.json();
@@ -173,8 +185,8 @@ $('createForm').addEventListener('submit',async event=>{
   }catch(e){submissionError(e.message)}
 });
 if((localMode && window.SHORTFORGE_LOCAL_CONTROLLED) || previewProxy){
-  document.querySelector('#createForm').previousElementSibling.textContent=previewProxy?'Preview online: confira as configurações. A geração está pausada até a homologação de uma fonte autorizada.':'Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
-  const permitted={count:['1','3','5'],length:['30','35','45'],resolution:['720']};
+  document.querySelector('#createForm').previousElementSibling.textContent=previewProxy?'Preview protegido: primeiro ensaio limitado a 1 Short de 30 segundos em 720p, com facecam manual e um vídeo autorizado de até 120 segundos.':'Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
+  const permitted={count:previewProxy?['1']:['1','3','5'],length:previewProxy?['30']:['30','35','45'],resolution:['720']};
   if(previewProxy)permitted.model=['base'];
   for(const [id,allowed] of Object.entries(permitted)){
     for(const option of [...$(id).options])if(!allowed.includes(option.value))option.remove();
