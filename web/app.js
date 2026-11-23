@@ -211,7 +211,7 @@ if((localMode && window.SHORTFORGE_LOCAL_CONTROLLED) || previewProxy){
       ? 'Site privado na Vercel: vídeos autorizados de até 6 horas, com seleção automática, facecam e legendas. Inicie com um Short em 720p.'
       : 'Preview protegido: ensaio de 1 Short de 30 segundos em 720p, com facecam manual; o vídeo original pode ter até 6 horas.')
     : 'Teste local: use um vídeo autorizado. Comece com um Short de 30 segundos em 720p.';
-  const permitted={count:previewProxy?(cloudProduction?['1','3']:['1']):['1','3','5'],
+  const permitted={count:previewProxy?(cloudProduction?['1','3','5']:['1']):['1','3','5'],
                    length:previewProxy?(cloudProduction?['30','35','45']:['30']):['30','35','45'],
                    resolution:['720']};
   if(previewProxy)permitted.model=['base'];
