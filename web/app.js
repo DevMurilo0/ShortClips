@@ -2,19 +2,15 @@
 const $=id=>document.getElementById(id);
 let taskId=null, timer=null, polling=false;
 const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
-let apiBase=(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'').replace(/\/$/,'');
+let apiBase=(localMode?'':(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'')).replace(/\/$/,'');
+const previewProxy=window.SHORTFORGE_PREVIEW_PROXY===true;
+const cloudProduction=window.SHORTFORGE_IS_PRODUCTION===true;
 let apiKey=sessionStorage.getItem('shortforge_public_access_key')||'';
 let connected=localMode;
-function authHeaders(){return !localMode&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
-function apiPath(path){return apiBase+path;}
+function authHeaders(){return !localMode&&!previewProxy&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
+function apiPath(path){return previewProxy?'/api/backend?path='+encodeURIComponent(path):apiBase+path;}
 function hasApi(){return connected;}
 function apiNotice(message){const el=$('backendStatus');if(el)el.textContent=message;}
-function enforceCloudLimits(){
-  if(localMode)return;
-  for(const [id,value] of [['count','5'],['length','45'],['resolution','720'],['model','base']]){
-    const el=$(id);if(el){el.value=value;el.disabled=true;}
-  }
-}
 async function refreshUsage(){
   if(!hasApi()||localMode)return;
   const panel=$('usagePanel');if(!panel)return;
@@ -34,21 +30,39 @@ async function refreshUsage(){
       '%. Valores do processamento, não a fatura da Vercel.';
   }catch(e){panel.hidden=true;}
 }
-async function signedDownload(pathname){
-  const url=new URL(apiPath('/api/download'),location.href);
-  url.searchParams.set('pathname',pathname);
-  const response=await fetch(url,{headers:authHeaders(),signal:AbortSignal.timeout(15000)});
-  const data=await response.json();
-  if(!response.ok||!data.url)throw Error(data.error||'Não foi possível assinar o download.');
-  // A URL privada vale poucos minutos; o token nunca entra na query.
-  window.location.assign(data.url);
+
+async function connectPreview(){
+  $('backendPanel').querySelector('h2').textContent='Motor de processamento';
+  $('backendURL').hidden=true;
+  document.querySelector('label[for="backendURL"]').hidden=true;
+  $('backendAccessKey').hidden=true;
+  document.querySelector('label[for="backendAccessKey"]').hidden=true;
+  $('backendPanel').querySelector('.disclaimer').hidden=true;
+  $('saveBackend').textContent='Verificar conexão';
+  $('backendPanel').querySelector('.hint').textContent='Acesso pela sua conta Vercel, sem digitar chave. O processamento ocorre na nuvem; você pode fechar o navegador durante a tarefa.';
+  const check=async()=>{
+    connected=false;$('submit').disabled=true;apiNotice('Verificando motor de processamento na nuvem...');
+    try{
+      const response=await fetch(apiPath('/api/health'),{signal:AbortSignal.timeout(20000)});
+      const data=await response.json();
+      if(!response.ok || data.ok!==true)throw Error(data.error||'API indisponível.');
+      connected=data.ready===true && data.admission_ready===true;
+      $('submit').disabled=!connected;
+      apiNotice(connected
+        ? 'Motor pronto. O processamento será executado na nuvem, sem usar seu computador.'
+        : 'Backend conectado, mas a geração ainda não está autorizada ou preparada neste ambiente.');
+      if(connected){await restoreLatest();await refreshUsage();}
+    }catch(error){apiNotice('Falha ao consultar o backend: '+error.message);}
+  };
+  $('saveBackend').addEventListener('click',check);
+  await check();
 }
 async function configureBackend(){
   const panel=$('backendPanel');
   if(!panel)return;
+  if(previewProxy){panel.hidden=false;await connectPreview();return;}
   panel.hidden=localMode;
   if(localMode)return;
-  enforceCloudLimits();
   $('backendURL').value=apiBase;
   $('backendAccessKey').value=apiKey;
   $('submit').disabled=!hasApi();
@@ -67,11 +81,13 @@ async function configureBackend(){
       const check=await r.json();
       if(!r.ok||check.ok!==true)throw Error('Esta URL não respondeu como API ShortForge.');
       if(check.ready===false)throw Error('O servidor existe, mas seu worker de vídeos ainda não está configurado.');
+      const access=await fetch(url.origin+(check.mode==='sandbox'?'/api/usage':'/api/jobs/latest'),{headers:{Authorization:'Bearer '+submittedKey},signal:AbortSignal.timeout(8000)});
+      if(!access.ok&&access.status!==404)throw Error('Chave de acesso inválida ou API indisponível.');
       apiBase=url.origin;apiKey=submittedKey;connected=true;
       localStorage.setItem('shortforge_api_url',apiBase);
       sessionStorage.setItem('shortforge_public_access_key',apiKey);
       $('submit').disabled=false;apiNotice('Servidor verificado. Acesso configurado nesta aba.');
-      await refreshUsage();
+      await restoreLatest();
     }catch(e){apiNotice('Conexão não estabelecida: '+(e.message||e));}
   });
 }
@@ -79,12 +95,35 @@ async function configureBackend(){
 function asText(element, text) {element.textContent=String(text??'');}
 function infoError(message) {$('jobErrors').textContent=message;}
 function safePath(name) {return apiPath('/downloads/'+encodeURIComponent(taskId)+'/'+encodeURIComponent(name));}
+function submissionError(message){
+  infoError(message);$('output').classList.add('active');
+  $('outputTitle').textContent='Não foi possível iniciar';
+  $('statusTag').textContent='NÃO INICIADO';
+  $('statusText').textContent='Corrija os dados e tente novamente.';
+  $('submit').disabled=false;$('submit').textContent='Gerar Shorts ↗';
+}
+
+function remoteDownloadLink(endpoint, name, label, className='download') {
+  const button=document.createElement('button');button.type='button';button.className=className;button.textContent=label;
+  button.onclick=async()=>{
+    button.disabled=true;
+    try{
+      if(!endpoint.startsWith('/api/download?'))throw Error('Endereço de download inválido.');
+      const response=await fetch(apiPath(endpoint),{headers:authHeaders(),signal:AbortSignal.timeout(15000)});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||'Falha ao autorizar o download.');
+      const link=document.createElement('a');link.href=data.url;link.download=name;link.rel='noopener';
+      document.body.append(link);link.click();link.remove();
+    }catch(error){infoError(error.message)}finally{button.disabled=false}
+  };
+  return button;
+}
 function render(job){
   if(!job)return;
   taskId=job.id;
   $('output').classList.add('active');
   $('outputTitle').textContent=job.title||'Preparando vídeos';
-  const labels={queued:'Aguardando',analyzing:'Analisando',downloading:'Baixando',transcribing:'Transcrevendo',detecting:'Detectando facecam',rendering:'Renderizando',ready:'Concluído',completed:'Concluído',partial:'Parcial',failed:'Falhou',cancelling:'Cancelando',cancelled:'Cancelado'};
+  const labels={queued:'Aguardando',analyzing:'Analisando',downloading:'Baixando',transcribing:'Transcrevendo',detecting:'Detectando facecam',rendering:'Renderizando',ready:'Concluído',completed:'Concluído',partial:'Parcial',failed:'Falhou',cancelling:'Cancelando',cancelled:'Cancelado',expired:'Expirado',uploading:'Armazenando'};
   $('statusTag').textContent=labels[job.stage]||labels[job.status]||'Processando';
   $('statusText').textContent=job.message||'';
   $('progressFill').style.width=Math.min(100,job.progress||0)+'%';
@@ -100,74 +139,96 @@ function render(job){
     const detail=document.createElement('p');detail.textContent=clip.status==='ready'?clip.width+' × '+clip.height+' · '+clip.facecam_detection:(clip.error||'');
     if(clip.status!=='ready'){
       card.append(id,title,detail);
-      if(clip.status==='failed'){
-        if(localMode){
-          const preview=document.createElement('a');preview.href=apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/clips/'+clip.number+'/preview');preview.target='_blank';preview.textContent='Ver quadro original';card.append(preview);
-        }
+      if(clip.status==='failed' && localMode){
+        const preview=document.createElement('a');preview.href=apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/clips/'+clip.number+'/preview');preview.target='_blank';preview.textContent='Ver quadro original';card.append(preview);
         const retry=document.createElement('button');retry.type='button';retry.className='download';retry.textContent='Repetir este corte';retry.disabled=['queued','running','cancelling'].includes(job.status);
-        retry.onclick=()=>retryClip(clip.number);if(localMode)card.append(retry);
+        retry.onclick=()=>retryClip(clip.number);card.append(retry);
       }
       area.appendChild(card);continue;
     }
-    const a=document.createElement('a');a.className='download';
-    const publicUrl=(!localMode && clip.download_url)||null;
-    if(!localMode && clip.blob_path){
-      a.href='#';a.textContent='Baixar MP4 seguro ↓';
-      a.onclick=async event=>{
-        event.preventDefault();
-        try{await signedDownload(clip.blob_path);}catch(e){infoError(e.message);}
-      };
-      card.append(id,title,detail,a);
-    }else if(!localMode&&!publicUrl){
-      const note=document.createElement('p');note.textContent='Armazenamento de vídeo indisponível para este corte.';
-      card.append(id,title,detail,note);
-    }else{
-      a.href=publicUrl||safePath(clip.name);a.download=clip.name;a.textContent='Baixar MP4 ↓';
-      card.append(id,title,detail,a);
+    card.append(id,title,detail);
+    if(!localMode && clip.download_endpoint){
+      card.append(remoteDownloadLink(clip.download_endpoint,clip.name,'Baixar MP4 ↓'));
+      const preview=remoteDownloadLink(clip.download_endpoint,clip.name,'Assistir Short');
+      // Playback uses a fresh, short-lived private URL; no credential in the URL.
+      preview.onclick=async()=>{
+        preview.disabled=true;
+        try{
+          const response=await fetch(apiPath(clip.download_endpoint),{headers:authHeaders(),signal:AbortSignal.timeout(15000)});
+          const data=await response.json();if(!response.ok)throw Error(data.error);
+          const video=document.createElement('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src=data.url;video.style.width='100%';
+          preview.replaceWith(video);
+        }catch(e){infoError(e.message);preview.disabled=false}
+      };card.append(preview);
+    }else if(localMode || clip.download_url){
+      if(localMode){
+        const video=document.createElement('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src=safePath(clip.name);video.style.width='100%';card.append(video);
+      }
+      const a=document.createElement('a');a.className='download';a.href=localMode?safePath(clip.name):clip.download_url;a.download=clip.name;a.textContent='Baixar MP4 ↓';card.append(a);
     }
     area.appendChild(card);
   }
   const zip=$('zipSlot');zip.replaceChildren();
-  if(job.zip_name && (localMode||job.zip_url||job.zip_path)){
-    const a=document.createElement('a');a.className='downloadBig';
-    a.href=(!localMode&&job.zip_url)|| (localMode?safePath(job.zip_name):'#');
-    a.textContent='Baixar todos os Shorts (.ZIP) ↓';
-    if(!localMode && job.zip_path){
-      a.onclick=async event=>{
-        event.preventDefault();
-        try{await signedDownload(job.zip_path);}catch(e){infoError(e.message);}
-      };
-    }
-    zip.appendChild(a);
+  if(job.zip_name && !localMode && job.zip_download_endpoint){
+    zip.append(remoteDownloadLink(job.zip_download_endpoint,job.zip_name,'Baixar todos os Shorts (.ZIP) ↓','downloadBig'));
+  }else if(job.zip_name && (localMode || job.zip_url)){
+    const a=document.createElement('a');a.className='downloadBig';a.href=localMode?safePath(job.zip_name):job.zip_url;a.textContent='Baixar todos os Shorts (.ZIP) ↓';zip.append(a);
   }
   $('cancelJob').hidden=!['queued','running','cancelling'].includes(job.status);
   $('cancelJob').disabled=job.status==='cancelling';
   $('progressLabel').textContent=(job.clips||[]).filter(c=>c.status==='ready').length+' de '+job.count+' arquivos validados';
   infoError((job.errors||[]).join('\n'));
-  if(['completed','partial','failed','cancelled'].includes(job.status) && timer){clearInterval(timer);timer=null;refreshUsage();}
+  if(['completed','partial','failed','cancelled','expired'].includes(job.status) && timer){clearInterval(timer);timer=null;void refreshUsage();}
 }
 async function poll(){
   if(!taskId||polling)return;
   polling=true;
-  try{const r=await fetch(apiPath('/api/jobs/'+encodeURIComponent(taskId)),{headers:authHeaders(),signal:AbortSignal.timeout(10000)});if(r.ok)render(await r.json())}catch(e){infoError('Não foi possível consultar o andamento. O programa local ainda está aberto?')}
+  try{const r=await fetch(apiPath('/api/jobs/'+encodeURIComponent(taskId)),{headers:authHeaders(),signal:AbortSignal.timeout(10000)});{const data=await r.json();if(!r.ok)throw Error(data.error||'Falha ao consultar tarefa.');render(data)}}catch(e){infoError(e.message||'Não foi possível consultar o andamento. Tente novamente.')}
   finally{polling=false}
 }
-function startPolling(){if(timer)clearInterval(timer);timer=setInterval(poll,2500);poll()}
+function startPolling(){if(timer)clearInterval(timer);timer=setInterval(poll,7000);poll()}
 $('createForm').addEventListener('submit',async event=>{
   event.preventDefault();
   if(!hasApi()){infoError('É necessário conectar um backend de processamento antes de gerar Shorts.');return;}
   $('submit').disabled=true; $('submit').textContent='Preparando...'; infoError('');
-  try { manualBox(); } catch(e) { infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;return; }
-  const payload={url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:manualBox()};
+  try { manualBox(); } catch(e) { submissionError(e.message);return; }
+  const selectedBox=manualBox();
+  if(previewProxy && !cloudProduction && !selectedBox){
+    submissionError('Para o ensaio protegido, informe a região manual da facecam (x y largura altura).');
+    return;
+  }
+  const payload={rights_confirmed:$('rightsConfirmed').checked,url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:selectedBox};
   try{
     const r=await fetch(apiPath('/api/jobs'),{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(payload)});
     const data=await r.json();
     if(!r.ok)throw new Error(data.error||'Não foi possível iniciar.');
     render(data.job);startPolling();$('output').scrollIntoView({block:'nearest',behavior:'smooth'});
-  }catch(e){infoError(e.message);$('output').classList.add('active');$('submit').disabled=false;$('submit').textContent='Gerar Shorts ↗'}
+  }catch(e){submissionError(e.message)}
 });
+if((localMode && window.SHORTFORGE_LOCAL_CONTROLLED) || previewProxy){
+  document.querySelector('#createForm').previousElementSibling.textContent=previewProxy
+    ? (cloudProduction
+      ? 'Site privado na Vercel: vídeos autorizados de até 6 horas, com seleção automática, facecam e legendas. Inicie com um Short em 720p.'
+      : 'Preview protegido: ensaio de 1 Short de 30 segundos em 720p, com facecam manual; o vídeo original pode ter até 6 horas.')
+    : 'Teste local: use um vídeo autorizado. Comece com um Short de 30 segundos em 720p.';
+  const permitted={count:previewProxy?(cloudProduction?['1','3']:['1']):['1','3','5'],
+                   length:previewProxy?(cloudProduction?['30','35','45']:['30']):['30','35','45'],
+                   resolution:['720']};
+  if(previewProxy)permitted.model=['base'];
+  for(const [id,allowed] of Object.entries(permitted)){
+    for(const option of [...$(id).options])if(!allowed.includes(option.value))option.remove();
+  }
+}
 configureBackend();
-(async()=>{if(!hasApi())return;try{const r=await fetch(apiPath('/api/jobs/latest'),{headers:authHeaders()});const x=await r.json();if(x.job){render(x.job);if(['queued','running'].includes(x.job.status))startPolling()}}catch(e){/* servidor pode ainda estar iniciando */}})();
+async function restoreLatest(){
+  if(!hasApi())return;
+  try{
+    const r=await fetch(apiPath('/api/jobs/latest'),{headers:authHeaders(),signal:AbortSignal.timeout(10000)});
+    const x=await r.json();
+    if(r.ok&&x.job){render(x.job);if(['queued','running'].includes(x.job.status))startPolling()}
+  }catch(e){infoError('Não foi possível recuperar a última tarefa. Tente reconectar.');}
+}
+restoreLatest();
 
 function manualBox(){
   const text=$('manualBox').value.trim();
