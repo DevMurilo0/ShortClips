@@ -106,6 +106,28 @@ class HybridWorkerHttpTests(unittest.TestCase):
             self.assertEqual(denied,416)
             self.assertEqual(invalid_headers.get('Content-Range'),'bytes */10')
 
+    def test_tailscale_serve_allows_only_the_exact_private_node(self):
+        hostname='arch.my-tailnet.ts.net'
+        with patch.object(app,'PORT',self.port), \
+             patch.object(app,'ALLOW_TEAM_PREVIEWS',True), \
+             patch.object(app,'TAILSCALE_HOST',hostname):
+            good,headers,body=self.request('GET','/api/health',
+                {'Host':hostname,'Origin':ALLOWED})
+            invalid,_,_=self.request('GET','/api/health',
+                {'Host':'attacker.other-tailnet.ts.net','Origin':ALLOWED})
+        self.assertEqual(good,200)
+        self.assertEqual(headers.get('Access-Control-Allow-Origin'),ALLOWED)
+        self.assertIn(b'ShortForge Local',body)
+        self.assertEqual(invalid,403)
+
+    def test_tailscale_hostname_is_not_enabled_without_explicit_config(self):
+        with patch.object(app,'PORT',self.port), \
+             patch.object(app,'ALLOW_TEAM_PREVIEWS',True), \
+             patch.object(app,'TAILSCALE_HOST',''):
+            denied,_,_=self.request('GET','/api/health',{
+                'Host':'arch.my-tailnet.ts.net','Origin':ALLOWED})
+        self.assertEqual(denied,403)
+
     def test_production_origin_allowlist_without_wildcard(self):
         with patch.object(app, "PORT", self.port), patch.object(app, "ALLOW_TEAM_PREVIEWS", True):
             self.assertTrue(app.allowed_browser_origin(ALLOWED))
