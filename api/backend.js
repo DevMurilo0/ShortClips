@@ -7,7 +7,7 @@ function createHandler(upstreamFetch = fetch) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const env = process.env;
-    if (env.VERCEL_ENV !== 'preview' || env.SHORTFORGE_PREVIEW_PROXY !== '1') {
+    if (env.VERCEL_ENV !== 'preview') {
       return res.status(503).json({error:'Integração de Preview não habilitada.'});
     }
     // Aceitar somente o host imutável do Preview protegido, nunca Production.
