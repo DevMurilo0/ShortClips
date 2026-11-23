@@ -15,8 +15,8 @@
   </header>
   <main>
     <section class="panel backendNotice" id="backendPanel" hidden aria-label="Configuração do servidor">
-      <h2>Conectar o motor de processamento</h2>
-      <p class="hint">O site está publicado, mas o navegador não consegue executar FFmpeg e Whisper sozinho. Para gerar Shorts, conecte uma API ShortForge hospedada separadamente. Não exponha um servidor sem autenticação à internet.</p>
+      <h2>Processamento no seu computador</h2>
+      <p class="hint">A interface fica hospedada na Vercel. O processamento dos Shorts acontece no seu PC, com CPU e RAM locais, pelo programa ShortForge em execução.</p>
       <label class="input-label" for="backendURL">Endereço HTTPS da API ShortForge</label>
       <div class="input-row">
         <input class="linkInput" id="backendURL" type="url" placeholder="https://api.exemplo.com" autocomplete="url">
@@ -84,11 +84,11 @@
           <div class="step"><div class="step-number">04</div><div><b>Legendar e montar</b><span>Facecam na parte superior, gameplay completa na inferior e legendas curtas e sincronizadas em português.</span></div></div>
           <div class="step"><div class="step-number">05</div><div><b>Entregar os arquivos</b><span>MP4 individuais e ZIP com todos os Shorts prontos.</span></div></div>
         </div>
-        <div class="footnote"><strong>Privacidade:</strong> a renderização acontece no computador ou servidor que você configurar. Na hospedagem pública, não existe edição automática sem um backend de processamento.</div>
+        <div class="footnote"><strong>Privacidade:</strong> vídeos, transcrição e renderização permanecem no seu computador. A Vercel hospeda apenas esta interface. Mantenha o programa local aberto durante a geração.</div>
       </aside>
     </section>
   </main>
-  <footer class="end"><span>SHORTFORGE · Interface disponível na Vercel; processamento em backend separado</span><span>FFmpeg + OpenCV + Faster-Whisper + yt-dlp</span></footer>
+  <footer class="end"><span>SHORTFORGE · Interface na Vercel; processamento neste computador</span><span>FFmpeg + OpenCV + Faster-Whisper + yt-dlp</span></footer>
 </div>
 <script src="./config.js"></script>
 <script src="./app.js" defer></script>
