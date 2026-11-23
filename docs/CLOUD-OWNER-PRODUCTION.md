@@ -75,7 +75,7 @@ no celular ou executar comandos no computador do usuário.
 - Em Production, o frontend não solicita **chave manual**. A autenticação é
   feita pela própria Vercel no início da sessão.
 - A API proxy recusa origens arbitrárias, domínios não homologados e pedidos
-  de geração acima de 3 Shorts, 45 segundos ou 720p.
+  de geração acima de 5 Shorts, 45 segundos ou 720p.
 - A API backend exige `SHORTFORGE_CLOUD_PRODUCTION_APPROVED=1`,
   `SHORTFORGE_MAX_JOBS_MONTH=1` e bypass privado antes de aceitar tarefas.
 - Todos os dados, chaves e downloads ficam em serviços protegidos; não
