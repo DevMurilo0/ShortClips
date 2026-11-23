@@ -11,5 +11,5 @@ for(const file of ['index.html','app.js','style.css']){
 }
 await writeFile('public/config.js',
   'window.SHORTFORGE_API_URL = ' + JSON.stringify(url) + ';\n' +
-  'window.SHORTFORGE_PREVIEW_PROXY = ' + JSON.stringify(process.env.VERCEL_ENV === 'preview' && process.env.SHORTFORGE_PREVIEW_PROXY === '1') + ';\n','utf8');
+  'window.SHORTFORGE_PREVIEW_PROXY = ' + JSON.stringify(process.env.VERCEL_ENV === 'preview') + ';\n','utf8');
 console.log('Frontend estático pronto em public/. API configurada: '+(url||'não'));
