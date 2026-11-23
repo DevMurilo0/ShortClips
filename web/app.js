@@ -4,6 +4,7 @@ let taskId=null, timer=null, polling=false;
 const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
 let apiBase=(localMode?'':(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'')).replace(/\/$/,'');
 const previewProxy=window.SHORTFORGE_PREVIEW_PROXY===true;
+const cloudProduction=window.SHORTFORGE_IS_PRODUCTION===true;
 let apiKey=sessionStorage.getItem('shortforge_public_access_key')||'';
 let connected=localMode;
 function authHeaders(){return !localMode&&!previewProxy&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
@@ -18,9 +19,9 @@ async function connectPreview(){
   document.querySelector('label[for="backendAccessKey"]').hidden=true;
   $('backendPanel').querySelector('.disclaimer').hidden=true;
   $('saveBackend').textContent='Verificar conexão';
-  $('backendPanel').querySelector('.hint').textContent='Acesso pela sua conta Vercel, sem digitar chave. A geração só será liberada quando o backend Preview estiver autorizado e pronto.';
+  $('backendPanel').querySelector('.hint').textContent='Acesso pela sua conta Vercel, sem digitar chave. O processamento ocorre na nuvem; você pode fechar o navegador durante a tarefa.';
   const check=async()=>{
-    connected=false;$('submit').disabled=true;apiNotice('Consultando o backend Preview...');
+    connected=false;$('submit').disabled=true;apiNotice('Verificando motor de processamento na nuvem...');
     try{
       const response=await fetch(apiPath('/api/health'),{signal:AbortSignal.timeout(20000)});
       const data=await response.json();
@@ -28,8 +29,8 @@ async function connectPreview(){
       connected=data.ready===true && data.admission_ready===true;
       $('submit').disabled=!connected;
       apiNotice(connected
-        ? 'Motor pronto para uma geração autorizada de 30 segundos em 720p.'
-        : 'Backend conectado, mas a geração ainda não foi ativada neste Preview.');
+        ? 'Motor pronto. O processamento será executado na nuvem, sem usar seu computador.'
+        : 'Backend conectado, mas a geração ainda não está autorizada ou preparada neste ambiente.');
       if(connected)await restoreLatest();
     }catch(error){apiNotice('Falha ao consultar o backend: '+error.message);}
   };
@@ -172,8 +173,8 @@ $('createForm').addEventListener('submit',async event=>{
   $('submit').disabled=true; $('submit').textContent='Preparando...'; infoError('');
   try { manualBox(); } catch(e) { submissionError(e.message);return; }
   const selectedBox=manualBox();
-  if(previewProxy && !selectedBox){
-    submissionError('Para o primeiro teste online, informe a região manual da facecam (x y largura altura).');
+  if(previewProxy && !cloudProduction && !selectedBox){
+    submissionError('Para o ensaio protegido, informe a região manual da facecam (x y largura altura).');
     return;
   }
   const payload={rights_confirmed:$('rightsConfirmed').checked,url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:selectedBox};
@@ -185,8 +186,14 @@ $('createForm').addEventListener('submit',async event=>{
   }catch(e){submissionError(e.message)}
 });
 if((localMode && window.SHORTFORGE_LOCAL_CONTROLLED) || previewProxy){
-  document.querySelector('#createForm').previousElementSibling.textContent=previewProxy?'Preview protegido: primeiro ensaio limitado a 1 Short de 30 segundos em 720p, com facecam manual e um vídeo autorizado de até 120 segundos.':'Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
-  const permitted={count:previewProxy?['1']:['1','3','5'],length:previewProxy?['30']:['30','35','45'],resolution:['720']};
+  document.querySelector('#createForm').previousElementSibling.textContent=previewProxy
+    ? (cloudProduction
+      ? 'Site privado na Vercel: vídeos autorizados de até 6 horas, com seleção automática, facecam e legendas. Inicie com um Short em 720p.'
+      : 'Preview protegido: ensaio de 1 Short de 30 segundos em 720p, com facecam manual; o vídeo original pode ter até 6 horas.')
+    : 'Teste local: use um vídeo autorizado. Comece com um Short de 30 segundos em 720p.';
+  const permitted={count:previewProxy?(cloudProduction?['1','3']:['1']):['1','3','5'],
+                   length:previewProxy?(cloudProduction?['30','35','45']:['30']):['30','35','45'],
+                   resolution:['720']};
   if(previewProxy)permitted.model=['base'];
   for(const [id,allowed] of Object.entries(permitted)){
     for(const option of [...$(id).options])if(!allowed.includes(option.value))option.remove();
