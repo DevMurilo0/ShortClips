@@ -1,0 +1,25 @@
+name: ShortForge cloud frontend CI
+on:
+  push:
+    branches: [fix/sync-cloud-main-20261123, main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript and UI contracts
+        run: npm test
+      - name: Compile static Vercel frontend
+        run: npm run build
+      - name: Verify there are no secret variables in static build
+        run: |
+          ! grep -r -E 'SHORTFORGE_OWNER_ACCESS_KEY|SHORTFORGE_WORKER_SECRET|BLOB_READ_WRITE_TOKEN' public/ || exit 1
