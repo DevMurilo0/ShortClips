@@ -2,12 +2,17 @@
 const $=id=>document.getElementById(id);
 let taskId=null, timer=null, polling=false;
 const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
-let apiBase=(localMode?'':(window.SHORTFORGE_API_URL||localStorage.getItem('shortforge_api_url')||'')).replace(/\/$/,'');
-const previewProxy=window.SHORTFORGE_PREVIEW_PROXY===true;
-let apiKey=sessionStorage.getItem('shortforge_public_access_key')||'';
+// The hosted interface talks directly to the user's loopback-only Python worker.
+// No Vercel Sandbox, Blob, public worker or API access key are involved.
+const localWorkerMode=!localMode;
+const localProcessing=localMode||localWorkerMode;
+const LOCAL_WORKER_URL='http://127.0.0.1:8765';
+let apiBase=localWorkerMode?LOCAL_WORKER_URL:'';
+const previewProxy=!localWorkerMode&&window.SHORTFORGE_PREVIEW_PROXY===true;
+let apiKey='';
 let connected=localMode;
-function authHeaders(){return !localMode&&apiKey?{'Authorization':'Bearer '+apiKey}:{};}
-function apiPath(path){return previewProxy?'/api/backend?path='+encodeURIComponent(path):apiBase+path;}
+function authHeaders(){return {};}
+function apiPath(path){return localWorkerMode?LOCAL_WORKER_URL+path:(previewProxy?'/api/backend?path='+encodeURIComponent(path):apiBase+path);}
 function hasApi(){return connected;}
 function apiNotice(message){const el=$('backendStatus');if(el)el.textContent=message;}
 async function connectPreview(){
@@ -29,9 +34,42 @@ async function connectPreview(){
   $('saveBackend').addEventListener('click',check);
   await check();
 }
+async function connectLocalWorker(){
+  const panel=$('backendPanel');
+  panel.hidden=false;
+  panel.querySelector('h2').textContent='Processamento no seu computador';
+  panel.querySelector('.hint').textContent='O site está na Vercel, mas CPU, RAM, vídeos e legendas ficam no seu PC. Inicie o worker local e depois verifique a conexão.';
+  $('backendURL').hidden=true;
+  document.querySelector('label[for="backendURL"]').hidden=true;
+  $('backendAccessKey').hidden=true;
+  document.querySelector('label[for="backendAccessKey"]').hidden=true;
+  panel.querySelector('.disclaimer').textContent='Sem chave de acesso e sem Vercel Sandbox. O computador deve permanecer ligado durante a geração.';
+  $('saveBackend').textContent='Verificar meu computador';
+  const check=async()=>{
+    connected=false;
+    $('submit').disabled=true;
+    apiNotice('Procurando o processador local em '+LOCAL_WORKER_URL+'...');
+    try{
+      const response=await fetch(apiPath('/api/health'),{mode:'cors',cache:'no-store',signal:AbortSignal.timeout(6500)});
+      const data=await response.json();
+      if(!response.ok||data.ok!==true||data.service!=='ShortForge Local'){
+        throw Error('O serviço local não respondeu como ShortForge.');
+      }
+      connected=true;
+      $('submit').disabled=false;
+      apiNotice('Computador conectado! Os Shorts serão processados neste PC, usando sua CPU e RAM.');
+      await restoreLatest();
+    }catch(error){
+      apiNotice('Processador local indisponível. Inicie ./start-hybrid-worker.sh na pasta ShortClips e clique em “Verificar meu computador”. O navegador pode solicitar permissão de acesso à rede local.');
+    }
+  };
+  $('saveBackend').addEventListener('click',check);
+  await check();
+}
 async function configureBackend(){
   const panel=$('backendPanel');
   if(!panel)return;
+  if(localWorkerMode){await connectLocalWorker();return;}
   if(previewProxy){panel.hidden=false;await connectPreview();return;}
   panel.hidden=localMode;
   if(localMode)return;
@@ -111,7 +149,7 @@ function render(job){
     const detail=document.createElement('p');detail.textContent=clip.status==='ready'?clip.width+' × '+clip.height+' · '+clip.facecam_detection:(clip.error||'');
     if(clip.status!=='ready'){
       card.append(id,title,detail);
-      if(clip.status==='failed' && localMode){
+      if(clip.status==='failed' && localProcessing){
         const preview=document.createElement('a');preview.href=apiPath('/api/jobs/'+encodeURIComponent(taskId)+'/clips/'+clip.number+'/preview');preview.target='_blank';preview.textContent='Ver quadro original';card.append(preview);
         const retry=document.createElement('button');retry.type='button';retry.className='download';retry.textContent='Repetir este corte';retry.disabled=['queued','running','cancelling'].includes(job.status);
         retry.onclick=()=>retryClip(clip.number);card.append(retry);
@@ -119,7 +157,7 @@ function render(job){
       area.appendChild(card);continue;
     }
     card.append(id,title,detail);
-    if(!localMode && clip.download_endpoint){
+    if(!localProcessing && clip.download_endpoint){
       card.append(remoteDownloadLink(clip.download_endpoint,clip.name,'Baixar MP4 ↓'));
       const preview=remoteDownloadLink(clip.download_endpoint,clip.name,'Assistir Short');
       // Playback uses a fresh, short-lived private URL; no credential in the URL.
@@ -132,19 +170,19 @@ function render(job){
           preview.replaceWith(video);
         }catch(e){infoError(e.message);preview.disabled=false}
       };card.append(preview);
-    }else if(localMode || clip.download_url){
-      if(localMode){
-        const video=document.createElement('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src=safePath(clip.name);video.style.width='100%';card.append(video);
+    }else if(localProcessing || clip.download_url){
+      if(localProcessing){
+        const video=document.createElement('video');video.controls=true;video.playsInline=true;video.preload='metadata';video.src=safePath(clip.name)+'?inline=1';video.style.width='100%';card.append(video);
       }
-      const a=document.createElement('a');a.className='download';a.href=localMode?safePath(clip.name):clip.download_url;a.download=clip.name;a.textContent='Baixar MP4 ↓';card.append(a);
+      const a=document.createElement('a');a.className='download';a.href=localProcessing?safePath(clip.name):clip.download_url;a.download=clip.name;a.textContent='Baixar MP4 ↓';card.append(a);
     }
     area.appendChild(card);
   }
   const zip=$('zipSlot');zip.replaceChildren();
-  if(job.zip_name && !localMode && job.zip_download_endpoint){
+  if(job.zip_name && !localProcessing && job.zip_download_endpoint){
     zip.append(remoteDownloadLink(job.zip_download_endpoint,job.zip_name,'Baixar todos os Shorts (.ZIP) ↓','downloadBig'));
-  }else if(job.zip_name && (localMode || job.zip_url)){
-    const a=document.createElement('a');a.className='downloadBig';a.href=localMode?safePath(job.zip_name):job.zip_url;a.textContent='Baixar todos os Shorts (.ZIP) ↓';zip.append(a);
+  }else if(job.zip_name && (localProcessing || job.zip_url)){
+    const a=document.createElement('a');a.className='downloadBig';a.href=localProcessing?safePath(job.zip_name):job.zip_url;a.textContent='Baixar todos os Shorts (.ZIP) ↓';zip.append(a);
   }
   $('cancelJob').hidden=!['queued','running','cancelling'].includes(job.status);
   $('cancelJob').disabled=job.status==='cancelling';
@@ -172,7 +210,7 @@ $('createForm').addEventListener('submit',async event=>{
     render(data.job);startPolling();$('output').scrollIntoView({block:'nearest',behavior:'smooth'});
   }catch(e){submissionError(e.message)}
 });
-if((localMode && window.SHORTFORGE_LOCAL_CONTROLLED) || previewProxy){
+if(!localWorkerMode && ((localMode && window.SHORTFORGE_LOCAL_CONTROLLED) || previewProxy)){
   document.querySelector('#createForm').previousElementSibling.textContent=previewProxy?'Preview online: confira as configurações. A geração está pausada até a homologação de uma fonte autorizada.':'Teste local: use um vídeo autorizado com fala, de 30 a 120 segundos. Comece com um Short de 30 segundos em 720p.';
   const permitted={count:['1','3','5'],length:['30','35','45'],resolution:['720']};
   if(previewProxy)permitted.model=['base'];
