@@ -24,6 +24,11 @@ ALLOWED_ORIGINS={v.strip().rstrip('/') for v in os.getenv('SHORTFORGE_ALLOWED_OR
 # Accept only this user's exact ShortForge deployment pattern, never *.vercel.app.
 TEAM_PREVIEW_ORIGIN=re.compile(r'https://short-clips-[a-z0-9]+-murilo15\.vercel\.app')
 ALLOW_TEAM_PREVIEWS=os.getenv('SHORTFORGE_ALLOW_TEAM_PREVIEWS')=='1'
+# Tailscale Serve privately routes HTTPS traffic from devices in this tailnet.
+# The host must match the single node recorded by the trusted startup script.
+TAILSCALE_HOST=os.getenv('SHORTFORGE_TAILSCALE_HOST','').strip().lower().rstrip('.')
+if TAILSCALE_HOST and not re.fullmatch(r'[a-z0-9-]+\.[a-z0-9-]+\.ts\.net',TAILSCALE_HOST):
+    raise RuntimeError('Nome de host do Tailscale inválido.')
 PORT=int(os.getenv('SHORTFORGE_PORT','8765'))
 
 
@@ -61,7 +66,9 @@ class Handler(BaseHTTPRequestHandler):
         if not ALLOW_TEAM_PREVIEWS:
             return True
         host=self.headers.get('Host','')
-        if host not in (f'127.0.0.1:{PORT}',f'localhost:{PORT}',f'[::1]:{PORT}'):
+        local_hosts={f'127.0.0.1:{PORT}',f'localhost:{PORT}',f'[::1]:{PORT}'}
+        tailscale_hosts={TAILSCALE_HOST,TAILSCALE_HOST+':443'} if TAILSCALE_HOST else set()
+        if host.lower() not in local_hosts | tailscale_hosts:
             self._json({'error':'Host local inválido.'},403)
             return False
         return True
