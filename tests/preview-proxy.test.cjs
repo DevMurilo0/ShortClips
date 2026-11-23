@@ -84,3 +84,60 @@ test('cancel stays available after new-job admission is disabled',async()=>{
    body:{},response:new Response(JSON.stringify({job:{id:job,status:'cancelled'}}),{headers:{'content-type':'application/json'}})});
  assert.equal(res.code,200);assert.equal(seen.length,1);assert.equal(seen[0][1].method,'POST');
 });
+
+test('Production is private, uses backend production host and never exposes secrets to browser',async()=>{
+ const env={VERCEL_ENV:'production',VERCEL_URL:'short-clips-random-murilo15.vercel.app',
+   SHORTFORGE_OWNER_PRODUCTION_ENABLED:'1',SHORTFORGE_PRODUCTION_ADMISSION:'1',
+   SHORTFORGE_PUBLIC_API_URL:'https://backend-short-clips.vercel.app',
+   SHORTFORGE_OWNER_ACCESS_KEY:'production-secret-with-more-than-32-characters',
+   SHORTFORGE_BACKEND_PROTECTION_BYPASS:'private-production-bypass'};
+ const response=new Response(JSON.stringify({ok:true,ready:true,mode:'sandbox'}),
+   {headers:{'content-type':'application/json'}});
+ const {res,seen}=await call({path:'/api/health',env,response});
+ assert.equal(res.code,200);assert.equal(res.body.admission_ready,true);
+ assert.equal(seen.length,1);
+ assert.equal(seen[0][1].headers.Authorization,'Bearer '+env.SHORTFORGE_OWNER_ACCESS_KEY);
+ assert.equal(seen[0][1].headers['x-vercel-protection-bypass'],env.SHORTFORGE_BACKEND_PROTECTION_BYPASS);
+ assert.ok(!JSON.stringify(res.body).includes(env.SHORTFORGE_OWNER_ACCESS_KEY));
+ assert.ok(!JSON.stringify(res.body).includes(env.SHORTFORGE_BACKEND_PROTECTION_BYPASS));
+});
+test('Production fails closed when owner approval, bypass or backend host is missing',async()=>{
+ const ready={VERCEL_ENV:'production',VERCEL_URL:'short-clips-tan.vercel.app',
+  SHORTFORGE_OWNER_PRODUCTION_ENABLED:'1',SHORTFORGE_PRODUCTION_ADMISSION:'1',
+  SHORTFORGE_PUBLIC_API_URL:'https://backend-short-clips.vercel.app',
+  SHORTFORGE_OWNER_ACCESS_KEY:'production-secret-with-more-than-32-characters',
+  SHORTFORGE_BACKEND_PROTECTION_BYPASS:'private-production-bypass'};
+ for(const change of [
+  {SHORTFORGE_OWNER_PRODUCTION_ENABLED:'0'},
+  {SHORTFORGE_BACKEND_PROTECTION_BYPASS:''},
+  {SHORTFORGE_OWNER_ACCESS_KEY:'[SENSITIVE]'},
+  {SHORTFORGE_PUBLIC_API_URL:'https://evil.example.com'},
+  {SHORTFORGE_PUBLIC_API_URL:'https://backend-short-clips-other-murilo15.vercel.app'},
+ ]){
+  const {res,seen}=await call({env:{...ready,...change}});
+  assert.equal(res.code,503);assert.equal(seen.length,0);
+ }
+ const noAdmit=await call({env:{...ready,SHORTFORGE_PRODUCTION_ADMISSION:'0'},
+   response:new Response(JSON.stringify({ok:true,ready:true}),{headers:{'content-type':'application/json'}})});
+ assert.equal(noAdmit.res.body.admission_ready,false);
+});
+test('Production permits bounded owner-only automatic facecam jobs, never unrestricted',async()=>{
+ const env={VERCEL_ENV:'production',VERCEL_URL:'short-clips-tan.vercel.app',
+  SHORTFORGE_OWNER_PRODUCTION_ENABLED:'1',SHORTFORGE_PRODUCTION_ADMISSION:'1',
+  SHORTFORGE_PUBLIC_API_URL:'https://backend-short-clips.vercel.app',
+  SHORTFORGE_OWNER_ACCESS_KEY:'production-secret-with-more-than-32-characters',
+  SHORTFORGE_BACKEND_PROTECTION_BYPASS:'private-production-bypass'};
+ const headers={origin:'https://short-clips-tan.vercel.app','content-type':'application/json'};
+ const body={rights_confirmed:true,url:'https://youtu.be/NZRCjPMb0AY',
+  count:1,length:30,resolution:720,manual_box:null,facecam:'auto',model:'base'};
+ const accepted=await call({method:'POST',path:'/api/jobs',headers,body,env,
+   response:new Response(JSON.stringify({job:{id:'a'.repeat(32),status:'queued'}}),
+     {status:201,headers:{'content-type':'application/json'}})});
+ assert.equal(accepted.res.code,201);assert.equal(accepted.seen.length,1);
+ for(const bad of [{count:5},{resolution:1080},{length:60},{rights_confirmed:false}]){
+  const blocked=await call({method:'POST',path:'/api/jobs',headers,body:{...body,...bad},env});
+  assert.equal(blocked.res.code,400);assert.equal(blocked.seen.length,0);
+ }
+ const forbidden=await call({method:'POST',path:'/api/jobs',headers:{...headers,origin:'https://evil.invalid'},body,env});
+ assert.equal(forbidden.res.code,403);assert.equal(forbidden.seen.length,0);
+});
