@@ -20,7 +20,7 @@ Projeto com interface web local. Você abre uma vez no VS Code, cola um link e c
 
 ## Guia rápido — Arch Linux
 
-Abra a pasta `ShortForge_Local` no VS Code. Em um terminal **dentro da pasta**:
+Abra a pasta `ShortClips` (ou seu checkout local existente) no VS Code. Em um terminal **dentro da pasta**:
 
 ```bash
 sudo pacman -S --needed python python-pip ffmpeg tesseract
@@ -138,39 +138,29 @@ organizadas em cartões curtos (aproximadamente 2–5 palavras), com quebra de
 linha controlada, letras mais legíveis e contorno mais forte. Não há promessa
 de transcrição perfeita: nomes e falas sobrepostas exigem revisão humana.
 
-## Publicação da interface na Vercel
+## Arquitetura local restaurada
 
-**A Vercel hospeda somente a interface HTML/CSS/JS.** O Python, FFmpeg, yt-dlp,
-OpenCV e Whisper **não rodam apenas em um `index.html`**, e o motor de vídeo
-não cabe no padrão de funções serverless curtas. Publicar esta branch na
-Vercel disponibiliza um site público, mas **a geração de Shorts só funciona
-quando uma API de processamento separada estiver implantada e conectada**.
+A branch `main` é exclusivamente local. O servidor Python `app.py` entrega a
+interface e a API na mesma origem, em http://127.0.0.1:8765.
+Não é necessário executar outro repositório, configurar variáveis da Vercel,
+usar Sandbox/Blob, Tailscale ou abrir portas para a internet.
 
-1. Na Vercel, importe `DevMurilo0/ShortClips` e escolha a branch desejada.
-2. Mantenha o framework como **Other**, o build `node scripts/build_static.mjs`
-   e o diretório de saída `public`. O `vercel.json` já define isso.
-3. Opcionalmente, configure `SHORTFORGE_PUBLIC_API_URL=https://api.seudominio.com`
-   nas variáveis de ambiente da Vercel (endereço **público**, nunca token).
-4. Sem API implantada, a página exibe o painel "Conectar o motor de processamento"
-   e desabilita geração; não exibe resultados fictícios.
+Para atualizar um checkout existente, salve suas mudanças locais e execute:
 
-Para testar o build em sua máquina: `node scripts/build_static.mjs`.
-Serão produzidos `public/index.html`, `public/style.css`,
-`public/app.js` e `public/config.js`.
+```bash
+git pull --ff-only origin main
+chmod +x iniciar.sh
+./iniciar.sh
+```
 
-### Backend remoto separado
+Os resultados existentes em `resultados/` e o ambiente `.venv/` não são
+apagados pelo launcher. Mantenha o terminal aberto enquanto processa.
+Para encerrar, pressione Ctrl+C. O modo local aceita vídeos longos e cinco
+cortes; não há quota mensal ou limite de tempo da Vercel.
+O desempenho depende de CPU, RAM, disco e acesso autorizado ao YouTube.
 
-O backend Python para Vercel agora é um projeto **independente** chamado
-`BackendShortClips`. Não deve ficar dentro deste repositório. Enquanto o
-repositório separado não tiver sido criado e implantado, a interface pública
-mostra o painel para conectar a API e não gera arquivos automaticamente.
+Caso uma cópia estática desta interface ainda esteja hospedada, ela só indica
+como abrir o servidor local e não envia solicitações a um backend cloud.
 
-No frontend, defina `SHORTFORGE_PUBLIC_API_URL` como a URL HTTPS do backend
-publicado na Vercel (sem barra final), ou informe-a manualmente no painel.
-O endereço de API não é segredo. Já as chaves reais de acesso pertencem às
-variáveis privadas do projeto de backend, nunca ao JavaScript estático.
-
-**A API de controle não renderiza vídeos em Vercel Functions.** Também
-precisará de worker persistente, armazenamento de MP4, controle de acesso e
-limites para uso público.
-
+O histórico cloud foi preservado na branch `backup/cloud-20261124`; o
+repositório BackendShortClips não é necessário para o uso local.

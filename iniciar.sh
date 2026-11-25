@@ -35,4 +35,4 @@ if ! python -c 'import av; assert av.__version__ == "18.1.0"' >/dev/null 2>&1; t
   echo 'Ajustando PyAV para uma versão compatível com as legendas (18.1.0)...'
   python -m pip install 'av==18.1.0'
 fi
-python app.py
+env -u SHORTFORGE_WORKER_SECRET -u SHORTFORGE_ALLOWED_ORIGINS -u SHORTFORGE_API_URL SHORTFORGE_HOST=127.0.0.1 python app.py
