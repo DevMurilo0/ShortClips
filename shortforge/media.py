@@ -199,7 +199,7 @@ def download_section(url:str, start:float, end:float, work:Path, notify:Callable
     cmd=[*youtube_command(),'--no-playlist','--socket-timeout','20','--retries','2',
          '--download-sections',f'*{timestamp(start)}-{timestamp(end)}',
          '--force-keyframes-at-cuts','--merge-output-format','mp4',
-         '--downloader-args','ffmpeg_o:-c:v libx264 -preset veryfast -threads '+('2' if os.getenv('SHORTFORGE_TERMUX')=='1' else '4')',
+         '--downloader-args','ffmpeg_o:-c:v libx264 -preset veryfast -threads '+('2' if os.getenv('SHORTFORGE_TERMUX')=='1' else '4'),
          '-f','bv*[height<=720]+ba/b[height<=720]/b',
          '--no-progress','-o',str((work/'original.%(ext)s').resolve()),url]
     try:
