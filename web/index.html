@@ -11,28 +11,13 @@
 <div class="shell">
   <header class="top">
     <div class="logo"><span class="logoMark">✦</span> ShortForge <span style="font-weight:400;color:#879a8b">/ Studio</span></div>
-    <span class="tag">SHORTS COM IA · INTERFACE WEB</span>
+    <span class="tag">SHORTS COM IA · PROCESSAMENTO LOCAL</span>
   </header>
   <main>
-    <section class="panel backendNotice" id="backendPanel" hidden aria-label="Configuração do servidor">
-      <h2>Conectar o motor de processamento</h2>
-      <p class="hint">O site está publicado, mas o navegador não consegue executar FFmpeg e Whisper sozinho. Para gerar Shorts, conecte uma API ShortForge hospedada separadamente. Não exponha um servidor sem autenticação à internet.</p>
-      <label class="input-label" for="backendURL">Endereço HTTPS da API ShortForge</label>
-      <div class="input-row">
-        <input class="linkInput" id="backendURL" type="url" placeholder="https://api.exemplo.com" autocomplete="url">
-        <button type="button" class="primary" id="saveBackend">Conectar servidor</button>
-      </div>
-      <label class="input-label" for="backendAccessKey" style="margin-top:15px">Chave de acesso ao processamento</label>
-      <input class="linkInput" id="backendAccessKey" type="password" placeholder="Chave do seu backend" autocomplete="off" style="width:100%">
-      <p class="disclaimer">Esta chave é mantida somente nesta aba; não coloque chaves do servidor em variáveis públicas da Vercel.</p>
-      <p id="backendStatus" role="status"></p>
-      <div id="usagePanel" hidden aria-label="Consumo do motor de vídeos" style="margin-top:20px;padding-top:16px;border-top:1px solid #4c5d4e">
-        <h3 style="font-size:15px;margin:0 0 8px">Consumo do Sandbox (Hobby)</h3>
-        <p id="usageJobs" style="font-size:14px"></p>
-        <p id="usageEstimate" style="font-size:13px;color:#a7b7a8"></p>
-        <p class="hint">Medição estimada e contagem registrada pelo ShortForge; confira os valores reais na Vercel.</p>
-        <a href="https://vercel.com/murilo15/~/usage" target="_blank" rel="noopener noreferrer">Consultar consumo oficial da Vercel ↗</a>
-      </div>
+    <section class="panel backendNotice" id="backendPanel" hidden aria-label="Execução local">
+      <h2>Abra o ShortForge no seu computador</h2>
+      <p class="hint">Esta versão processa os vídeos exclusivamente na sua máquina. Na pasta do projeto, execute <code>./iniciar.sh</code> e abra a interface local.</p>
+      <a class="download" href="http://127.0.0.1:8765/">Abrir ShortForge local ↗</a>
     </section>
     <section class="hero">
       <div>
@@ -46,18 +31,18 @@
       <div>
         <div class="panel">
           <h2>Criar novos cortes</h2>
-          <p class="hint">Não precisa enviar ou baixar o vídeo manualmente. A primeira execução pode demorar, principalmente em vídeos de várias horas.</p>
+          <p class="hint">Não precisa enviar ou baixar o vídeo manualmente. O processamento roda no seu computador. Mantenha o terminal aberto; vídeos de várias horas podem demorar.</p>
           <form id="createForm">
             <label class="input-label" for="url">Link do vídeo do YouTube</label>
             <div class="input-row">
               <input class="linkInput" id="url" type="url" required placeholder="https://youtu.be/..." autocomplete="url">
-              <button class="primary" type="submit" id="submit">Gerar Shorts <span aria-hidden="true">↗</span></button>
+              <button class="primary" type="submit" id="submit" disabled>Gerar Shorts <span aria-hidden="true">↗</span></button>
             </div>
             <label class="rightsConsent"><input type="checkbox" id="rightsConfirmed" required> Confirmo que possuo ou tenho autorização para processar este vídeo.</label>
             <p class="disclaimer">Use somente conteúdos que você tem autorização para recortar. A seleção automática não garante viralização ou monetização.</p>
             <details class="details"><summary>Configurações avançadas (opcional)</summary>
               <div class="optgrid">
-                <label class="opt" for="count">Quantidade de Shorts<select id="count"><option selected>1</option><option>3</option><option>5</option><option>10</option></select></label>
+                <label class="opt" for="count">Quantidade de Shorts<select id="count"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></label>
                 <label class="opt" for="length">Duração alvo<select id="length"><option value="30" selected>30 segundos</option><option value="35">35 segundos</option><option value="45">45 segundos</option><option value="55">55 segundos</option><option value="60">60 segundos</option></select></label>
                 <label class="opt" for="resolution">Qualidade<select id="resolution"><option value="720" selected>720 × 1280 · Rápido</option><option value="1080">1080 × 1920 · Alta</option></select></label>
                 <label class="opt" for="model">Qualidade das legendas<select id="model"><option value="tiny">Tiny · Rápido</option><option value="base" selected>Base · Equilibrado</option><option value="small">Small · Mais preciso, lento</option></select></label>
@@ -91,13 +76,12 @@
           <div class="step"><div class="step-number">04</div><div><b>Legendar e montar</b><span>Facecam na parte superior, gameplay completa na inferior e legendas curtas e sincronizadas em português.</span></div></div>
           <div class="step"><div class="step-number">05</div><div><b>Entregar os arquivos</b><span>MP4 individuais e ZIP com todos os Shorts prontos.</span></div></div>
         </div>
-        <div class="footnote"><strong>Privacidade:</strong> a renderização acontece no computador ou servidor que você configurar. Na hospedagem pública, não existe edição automática sem um backend de processamento.</div>
+        <div class="footnote"><strong>Privacidade:</strong> a renderização acontece no seu computador. Os resultados ficam na pasta resultados/; não há envio de vídeos para um servidor ShortForge externo.</div>
       </aside>
     </section>
   </main>
-  <footer class="end"><span>SHORTFORGE · Interface disponível na Vercel; processamento em backend separado</span><span>FFmpeg + OpenCV + Faster-Whisper + yt-dlp</span></footer>
+  <footer class="end"><span>SHORTFORGE · Interface e processamento locais</span><span>FFmpeg + OpenCV + Faster-Whisper + yt-dlp</span></footer>
 </div>
-<script src="./config.js"></script>
 <script src="./app.js" defer></script>
 </body>
 </html>
