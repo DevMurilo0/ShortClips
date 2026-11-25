@@ -117,6 +117,9 @@ def restore_jobs(root):
 
 def _load_whisper(model_name):
     try:
+        if os.getenv('SHORTFORGE_ANDROID_NATIVE')=='1':
+            from .android_whisper import AndroidWhisper
+            return AndroidWhisper(model_name)
         from faster_whisper import WhisperModel
         # Bound CPU use; leave the interface and cancellation responsive.
         return WhisperModel(model_name,device='cpu',compute_type='int8',cpu_threads=2 if os.getenv('SHORTFORGE_TERMUX')=='1' else 4,num_workers=1)

@@ -31,5 +31,8 @@ jobs:
           test -s public/config.js
           npm test
           bash -n iniciar.sh
+          bash -n instalar-android.sh
+          bash -n iniciar-android.sh
+          python -m py_compile shortforge/android_whisper.py scripts/check_android.py
           ! grep -q 'backend-short-clips.vercel.app' public/app.js
           test -s public/style.css

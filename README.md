@@ -168,3 +168,7 @@ repositório BackendShortClips não é necessário para o uso local.
 ## Android / Termux
 
 Use o [guia de instalação para Termux](docs/TERMUX.md). O processamento permanece inteiramente local no celular, usando Ubuntu ARM64 via PRoot. A versão de PC permanece independente.
+
+## Android nativo (sem Ubuntu)
+
+Opção recomendada para ARM64: [instalação nativa pelo Termux](docs/ANDROID-NATIVE.md). O perfil usa Whisper.cpp e pacotes nativos do Termux; o PC permanece com Faster-Whisper.
