@@ -1,0 +1,4 @@
+-r requirements.txt
+yt-dlp[default]>=2026.11.23
+# ARM64 wheels on Linux glibc; no native Android compilation.
+ctranslate2==4.8.5

@@ -164,3 +164,7 @@ como abrir o servidor local e não envia solicitações a um backend cloud.
 
 O histórico cloud foi preservado na branch `backup/cloud-20261124`; o
 repositório BackendShortClips não é necessário para o uso local.
+
+## Android / Termux
+
+Use o [guia de instalação para Termux](docs/TERMUX.md). O processamento permanece inteiramente local no celular, usando Ubuntu ARM64 via PRoot. A versão de PC permanece independente.
