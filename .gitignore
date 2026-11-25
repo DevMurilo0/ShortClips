@@ -17,3 +17,6 @@ resultados-local/
 resultados-*/
 
 .venv-termux/
+
+.venv-android/
+modelos/android/

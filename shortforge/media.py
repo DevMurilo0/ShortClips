@@ -237,7 +237,11 @@ def identify_facecam(video:Path, corner='auto', manual_box=None):
         corners=('superior-esquerdo','superior-direito','inferior-esquerdo','inferior-direito')
         if corner not in ('auto', *corners):
             raise ValueError('Posição manual da facecam inválida.')
-        classifier=cv2.CascadeClassifier(cv2.data.haarcascades+'haarcascade_frontalface_default.xml')
+        if os.getenv('SHORTFORGE_ANDROID_NATIVE')=='1':
+            from .android_whisper import cascade_path
+            classifier=cv2.CascadeClassifier(str(cascade_path()))
+        else:
+            classifier=cv2.CascadeClassifier(cv2.data.haarcascades+'haarcascade_frontalface_default.xml')
         if classifier.empty():
             raise RuntimeError('Classificador de rostos OpenCV indisponível.')
         clusters=[]; samples=0
@@ -322,7 +326,7 @@ def validate_srt(path:Path, duration=None):
 
 def make_srt(model, video:Path, target:Path, notify, language='pt') -> int:
     """Legendas mobile: 2–5 palavras por tela, mantendo o tempo do Whisper."""
-    notify('Reconhecendo fala e sincronizando legendas curtas por palavra...')
+    notify('Reconhecendo fala e sincronizando legendas curtas...' if os.getenv('SHORTFORGE_ANDROID_NATIVE')=='1' else 'Reconhecendo fala e sincronizando legendas curtas por palavra...')
     duration=ffprobe(video)['duration']
     segments,info=model.transcribe(
         str(video),language=language,vad_filter=True,beam_size=5,
