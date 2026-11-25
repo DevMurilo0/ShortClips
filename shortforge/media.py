@@ -21,6 +21,13 @@ from .scoring import clamp
 from .runtime import check_cancelled, Cancelled
 
 
+def youtube_command():
+    command=[sys.executable,'-m','yt_dlp']
+    if os.getenv('SHORTFORGE_TERMUX')=='1':
+        command+=['--js-runtimes','node']
+    return command
+
+
 def require_dependencies():
     missing = [x for x in ('ffmpeg', 'ffprobe', 'tesseract') if not shutil.which(x)]
     if missing:
@@ -90,7 +97,7 @@ def ffprobe(path: Path) -> dict:
 
 def metadata_youtube(url, notify):
     notify('Consultando metadados e disponibilidade de Mais reproduzido...')
-    result=run([sys.executable,'-m','yt_dlp','--skip-download','--dump-single-json',
+    result=run([*youtube_command(),'--skip-download','--dump-single-json',
         '--no-playlist','--socket-timeout','18','--retries','2',url],stage='Consulta ao YouTube',timeout=120)
     try:
         info=json.loads(result.stdout)
@@ -126,7 +133,7 @@ def _find_media(folder:Path, stem:str):
 
 def download_audio(url, folder, notify):
     notify('Baixando áudio para análise local...')
-    run([sys.executable,'-m','yt_dlp','--no-playlist','--no-progress','--socket-timeout','20',
+    run([*youtube_command(),'--no-playlist','--no-progress','--socket-timeout','20',
          '--retries','2','--fragment-retries','2','-f','bestaudio/best',
          '-o',str((folder/'analise_audio.%(ext)s').resolve()),url],stage='Download do áudio',timeout=1800)
     p=_find_media(folder,'analise_audio')
@@ -189,10 +196,10 @@ def download_section(url:str, start:float, end:float, work:Path, notify:Callable
             return desired
         raise RuntimeError('Trecho existente tem duração incompatível; preserve-o e use outra tarefa.')
     notify(f'Baixando trecho {timestamp(start)}–{timestamp(end)} do YouTube...')
-    cmd=[sys.executable,'-m','yt_dlp','--no-playlist','--socket-timeout','20','--retries','2',
+    cmd=[*youtube_command(),'--no-playlist','--socket-timeout','20','--retries','2',
          '--download-sections',f'*{timestamp(start)}-{timestamp(end)}',
          '--force-keyframes-at-cuts','--merge-output-format','mp4',
-         '--downloader-args','ffmpeg_o:-c:v libx264 -preset veryfast -threads 4',
+         '--downloader-args','ffmpeg_o:-c:v libx264 -preset veryfast -threads '+('2' if os.getenv('SHORTFORGE_TERMUX')=='1' else '4'),
          '-f','bv*[height<=720]+ba/b[height<=720]/b',
          '--no-progress','-o',str((work/'original.%(ext)s').resolve()),url]
     try:
@@ -458,7 +465,7 @@ def render_split(video:Path, srt:Path, out:Path, face_box, width:int, notify):
         cmd=['ffmpeg','-hide_banner','-loglevel','error','-nostdin','-y','-filter_complex_threads','2',
              '-i',str(video.resolve()),'-filter_complex',build_filters(face_box,width),'-map','[v]',
              '-map','0:a:0','-af','asetpts=PTS-STARTPTS','-t',str(min(60,probe['duration'])),
-             '-r','30','-c:v','libx264','-threads','4','-preset','veryfast','-crf','23',
+             '-r','30','-c:v','libx264','-threads',('2' if os.getenv('SHORTFORGE_TERMUX')=='1' else '4'),'-preset','veryfast','-crf','23',
              '-pix_fmt','yuv420p','-c:a','aac','-b:a','128k','-movflags','+faststart',str(partial)]
         run(cmd,cwd=work,notify=notify,stage='Montando facecam, gameplay e legendas...')
         actual=validate_output(partial,width)

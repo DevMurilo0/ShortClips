@@ -7,6 +7,7 @@ from urllib.parse import urlparse, parse_qs
 import copy
 import json
 import math
+import os
 import re
 import threading
 import zipfile
@@ -118,7 +119,7 @@ def _load_whisper(model_name):
     try:
         from faster_whisper import WhisperModel
         # Bound CPU use; leave the interface and cancellation responsive.
-        return WhisperModel(model_name,device='cpu',compute_type='int8',cpu_threads=4,num_workers=1)
+        return WhisperModel(model_name,device='cpu',compute_type='int8',cpu_threads=2 if os.getenv('SHORTFORGE_TERMUX')=='1' else 4,num_workers=1)
     except Exception as e:
         raise RuntimeError('Não foi possível carregar o modelo de legendas. Verifique as dependências e o acesso ao modelo na primeira execução. '+str(e)) from e
 
