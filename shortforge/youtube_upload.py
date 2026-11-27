@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import fcntl
+from contextlib import contextmanager
 import json
 import os
 import re
@@ -43,6 +45,18 @@ def request(url, method='GET', data=None, headers=None):
 def private_dir():
     HOME.mkdir(mode=0o700, parents=True, exist_ok=True)
     HOME.chmod(0o700)
+
+@contextmanager
+def exclusive_upload():
+    private_dir()
+    fd=os.open(HOME/'publisher.lock',os.O_CREAT|os.O_RDWR,0o600)
+    try:
+        try: fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError: raise RuntimeError('Outra operação de publicação está em andamento.') from None
+        yield
+    finally:
+        os.close(fd)
+
 
 def save(name, data):
     private_dir()
@@ -198,6 +212,9 @@ def send_row(con,row):
     total=path.stat().st_size
     session=row['session']
     if not session:
+        publish_at=json.loads(row['metadata'])['status'].get('publishAt')
+        if publish_at and datetime.fromisoformat(publish_at.replace('Z','+00:00')) <= datetime.now(timezone.utc)+timedelta(minutes=2):
+            raise RuntimeError('Horário agendado vencido ou muito próximo. Publique manualmente para evitar publicação imediata.')
         body=row['metadata'].encode()
         code,headers,_=request(UPLOAD+'?uploadType=resumable&part=snippet,status','POST',body,dict(auth_headers(),**{'Content-Type':'application/json','X-Upload-Content-Type':'video/mp4','X-Upload-Content-Length':str(total)}))
         if code not in (200,201) or not headers.get('Location'): raise RuntimeError('Não foi possível iniciar upload (HTTP %s).'%code)
@@ -232,7 +249,7 @@ def send_row(con,row):
             offset=next_offset
 
 def run_pending(job_id=None):
-    with LOCK:
+    with exclusive_upload():
         account=connected()
         if not account: raise RuntimeError('Canal desconectado.')
         if channel()['id']!=account['id']: raise RuntimeError('O canal autorizado mudou. Envio bloqueado.')
@@ -261,10 +278,12 @@ def main():
     sub.add_parser('resume')
     sub.add_parser('disconnect')
     args=p.parse_args()
-    if args.action=='connect': login(args.client_json)
+    if args.action=='connect':
+        with exclusive_upload(): login(args.client_json)
     elif args.action=='resume': run_pending()
     elif args.action=='status': print(connected() or 'Desconectado')
     else:
-        for name in ('token.json','channel.json','client.json'): (HOME/name).unlink(missing_ok=True)
+        with exclusive_upload():
+            for name in ('token.json','channel.json','client.json'): (HOME/name).unlink(missing_ok=True)
         print('Credenciais locais removidas. Revogue também em https://myaccount.google.com/permissions')
 if __name__=='__main__': main()

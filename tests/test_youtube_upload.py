@@ -34,3 +34,21 @@ class YoutubeTests(unittest.TestCase):
                 y.enqueue(job);self.assertEqual(y.status('abc'),[])
                 job.status='completed';y.enqueue(job);y.enqueue(job)
                 self.assertEqual(len(y.status('abc')),1)
+
+    def test_resume_from_server_offset_and_record_video_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);path=root/'short_01.mp4';path.write_bytes(b'abcdef')
+            job=SimpleNamespace(id='abc',title='x',url='https://youtu.be/abcdefghijk',count=1,status='completed',destination=root,
+                youtube=dict(channel='abc',privacy='private',interval=0,made_for_kids=False),clips=[dict(number=1,name=path.name,status='ready',audio=True,subtitles_burned=True)])
+            url='https://www.googleapis.com/upload/youtube/v3/videos?upload_id=abc'
+            with patch.object(y,'HOME',root/'private'):
+                y.enqueue(job)
+                with y.db() as con:
+                    row=con.execute('SELECT * FROM uploads').fetchone()
+                    y.update(con,row,session=url,state='paused')
+                    row=con.execute('SELECT * FROM uploads').fetchone()
+                    with patch.object(y,'auth_headers',return_value={}),patch.object(y,'request',side_effect=[
+                        (308,{'Range':'bytes=0-2'},b''),(200,{},b'{"id":"abcdefghijk"}')]) as req:
+                        y.send_row(con,row)
+                        self.assertEqual(req.call_args_list[1].args[2],b'def')
+                self.assertEqual(y.status('abc')[0]['video_id'],'abcdefghijk')
