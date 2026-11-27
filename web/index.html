@@ -40,6 +40,17 @@
             </div>
             <label class="rightsConsent"><input type="checkbox" id="rightsConfirmed" required> Confirmo que possuo ou tenho autorização para processar este vídeo.</label>
             <p class="disclaimer">Use somente conteúdos que você tem autorização para recortar. A seleção automática não garante viralização ou monetização.</p>
+            <details class="details" id="youtubePanel"><summary>Publicação automática no YouTube (opcional)</summary>
+              <p class="hint" id="youtubeChannel">Conta não conectada. Consulte o guia de configuração.</p>
+              <button type="button" id="youtubeRefresh" class="download">Verificar canal</button>
+              <label class="rightsConsent"><input type="checkbox" id="youtubeAuto" disabled> Enviar automaticamente todos os Shorts deste lote quando concluídos</label>
+              <div class="optgrid">
+                <label class="opt">Visibilidade<select id="youtubePrivacy"><option value="private">Privado</option><option value="unlisted">Não listado</option><option value="public">Público</option></select></label>
+                <label class="opt">Intervalo (público agendado)<select id="youtubeInterval"><option value="0">Imediato</option><option value="30">30 minutos</option><option value="60">1 hora</option><option value="120">2 horas</option><option value="1440">24 horas</option></select></label>
+                <label class="opt">Destinado a crianças?<select id="youtubeKids"><option value="">Selecione</option><option value="no">Não</option><option value="yes">Sim</option></select></label>
+              </div>
+              <p class="hint">Os títulos usam o nome original e o número do corte. Agendamentos começam em aproximadamente 10 minutos após a geração.</p>
+            </details>
             <details class="details"><summary>Configurações avançadas (opcional)</summary>
               <div class="optgrid">
                 <label class="opt" for="count">Quantidade de Shorts<select id="count"><option>1</option><option>3</option><option selected>5</option><option>10</option></select></label>
@@ -63,6 +74,7 @@
           <div class="outputHead" id="selection"></div>
           <div class="clipGrid" id="clipGrid"></div>
           <div id="zipSlot"></div>
+          <p id="youtubeUploads" class="hint" aria-live="polite"></p>
           <p class="alert" id="jobErrors"></p>
         </div>
       </div>

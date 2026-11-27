@@ -68,6 +68,7 @@ class Job:
     zip_name:str|None=None
     candidates:list[dict]=field(default_factory=list)
     manual_box:list|None=None
+    youtube:dict|None=None
     started_at:str=field(default_factory=lambda:datetime.now(timezone.utc).isoformat())
     lock:threading.RLock=field(default_factory=threading.RLock,repr=False)
     cancel:threading.Event=field(default_factory=threading.Event,repr=False)
@@ -86,7 +87,7 @@ class Job:
                 resolution=self.resolution,facecam=self.facecam,model_name=self.model_name,
                 status=self.status,stage=self.stage,message=self.message,progress=self.progress,
                 title=self.title,selection_mode=self.selection_mode,clips=self.clips,errors=self.errors,
-                zip_name=self.zip_name,candidates=self.candidates,manual_box=self.manual_box,started_at=self.started_at))
+                zip_name=self.zip_name,candidates=self.candidates,manual_box=self.manual_box,started_at=self.started_at,youtube=self.youtube))
 
     def persist(self):
         with self.lock:

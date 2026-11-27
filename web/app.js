@@ -1,6 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let taskId=null, timer=null, polling=false;
+let youtubeChannel=null, youtubeTimer=null;
 const localMode=['127.0.0.1','localhost','::1'].includes(location.hostname);
 const localAddress='http://127.0.0.1:8765';
 function hasApi(){return localMode;}
@@ -9,6 +10,25 @@ function authHeaders(){return {};}
 function configureBackend(){
   $('backendPanel').hidden=localMode;
   $('submit').disabled=!localMode;
+}
+async function refreshYoutube(){
+  if(!hasApi())return;
+  try{
+    const r=await fetch('/api/youtube/channel');const data=await r.json();
+    if(!r.ok)throw Error('Canal indisponível');
+    youtubeChannel=data.channel;
+    $('youtubeChannel').textContent=youtubeChannel?'Canal: '+youtubeChannel.title:'Conta não conectada. Veja docs/YOUTUBE-UPLOAD.md.';
+    $('youtubeAuto').disabled=!youtubeChannel;
+    $('youtubeAuto').checked=false;
+  }catch(e){youtubeChannel=null;$('youtubeAuto').disabled=true;$('youtubeAuto').checked=false;$('youtubeChannel').textContent='Não foi possível verificar o canal.';}
+}
+$('youtubeRefresh').addEventListener('click',refreshYoutube);
+async function showYoutube(id){
+  try{
+    const r=await fetch('/api/youtube/jobs/'+encodeURIComponent(id));const data=await r.json();
+    if(!r.ok||taskId!==id)return;
+    $('youtubeUploads').textContent=data.uploads.length?data.uploads.map(u=>'Short '+u.number+': '+(u.video_id?'https://youtu.be/'+u.video_id:u.state==='paused'?'Pausado — '+u.error:u.state==='uploading'?'Enviando':'Na fila')).join(' | '):'Aguardando fila de publicação.';
+  }catch(e){if(taskId===id)$('youtubeUploads').textContent='Não foi possível consultar uploads.';}
 }
 function asText(element, text) {element.textContent=String(text??'');}
 function infoError(message) {$('jobErrors').textContent=message;}
@@ -24,6 +44,9 @@ function submissionError(message){
 function render(job){
   if(!job)return;
   taskId=job.id;
+  if(youtubeTimer){clearInterval(youtubeTimer);youtubeTimer=null;}
+  if(job.youtube){showYoutube(job.id);youtubeTimer=setInterval(()=>showYoutube(job.id),5000);}
+  else $('youtubeUploads').textContent='';
   $('output').classList.add('active');
   $('outputTitle').textContent=job.title||'Preparando vídeos';
   const labels={queued:'Aguardando',analyzing:'Analisando',downloading:'Baixando',transcribing:'Transcrevendo',detecting:'Detectando facecam',rendering:'Renderizando',ready:'Concluído',completed:'Concluído',partial:'Parcial',failed:'Falhou',cancelling:'Cancelando',cancelled:'Cancelado',expired:'Expirado',uploading:'Armazenando'};
@@ -78,6 +101,13 @@ $('createForm').addEventListener('submit',async event=>{
   let selectedBox;
   try { selectedBox=manualBox(); } catch(e) { submissionError(e.message);return; }
   const payload={rights_confirmed:$('rightsConfirmed').checked,url:$('url').value.trim(),count:Number($('count').value),length:Number($('length').value),resolution:Number($('resolution').value),model:$('model').value,facecam:$('facecam').value,manual_box:selectedBox};
+  if($('youtubeAuto').checked){
+    if(!youtubeChannel||!$('youtubeKids').value){submissionError('Confirme o canal e se o conteúdo é destinado a crianças.');return;}
+    const privacy=$('youtubePrivacy').value,interval=Number($('youtubeInterval').value);
+    if(interval&&privacy!=='public'){submissionError('Agendamento exige visibilidade pública.');return;}
+    if(!confirm('Enviar todos os Shorts deste lote ao canal '+youtubeChannel.title+' ('+privacy+ (interval?', agendado':'')+')?')){submissionError('Publicação não autorizada.');return;}
+    payload.youtube={enabled:true,confirmed:true,channel:youtubeChannel.id,privacy,interval,made_for_kids:$('youtubeKids').value==='yes'};
+  }
   try{
     const r=await fetch(apiPath('/api/jobs'),{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(payload)});
     const data=await r.json();
