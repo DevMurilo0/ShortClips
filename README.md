@@ -172,3 +172,7 @@ Use o [guia de instalação para Termux](docs/TERMUX.md). O processamento perman
 ## Android nativo (sem Ubuntu)
 
 Opção recomendada para ARM64: [instalação nativa pelo Termux](docs/ANDROID-NATIVE.md). O perfil usa Whisper.cpp e pacotes nativos do Termux; o PC permanece com Faster-Whisper.
+
+## Publicação opcional no YouTube
+
+Veja [o guia de configuração OAuth e uploads](docs/YOUTUBE-UPLOAD.md). O envio fica desativado até a autorização explícita de cada lote.

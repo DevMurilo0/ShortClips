@@ -17,6 +17,8 @@ from urllib.parse import urlparse, unquote
 
 from shortforge.pipeline import Job, execute, validate_url, validate_manual_box, restore_jobs
 
+from shortforge import youtube_upload
+
 ROOT=Path(__file__).resolve().parent
 OUT=ROOT/'resultados'
 HOST=os.getenv('SHORTFORGE_HOST','127.0.0.1')
@@ -27,7 +29,21 @@ WORKERS={}
 JOBS_LOCK=threading.Lock()
 
 
+def execute_with_upload(job,retry_number=None):
+    execute(job,retry_number)
+    if job.youtube and job.status=='completed':
+        try:
+            youtube_upload.enqueue(job)
+            youtube_upload.run_pending(job.id)
+        except Exception:
+            # Upload must never invalidate the completed media.
+            print('Publicação pendente; confira a conexão e retome a fila.')
+
+
 class Handler(BaseHTTPRequestHandler):
+    def _local_youtube(self):
+        return HOST=='127.0.0.1' and self.headers.get('Host') in ('127.0.0.1:8765','localhost:8765') and self.headers.get('Sec-Fetch-Site')!='cross-site'
+
     def _worker_authorized(self):
         secret=os.getenv('SHORTFORGE_WORKER_SECRET','').strip()
         if not secret:
@@ -77,6 +93,9 @@ class Handler(BaseHTTPRequestHandler):
             raw=('window.SHORTFORGE_API_URL='+json.dumps(os.getenv('SHORTFORGE_API_URL',''))+';').encode('utf-8')
             self._headers(content_type='text/javascript; charset=utf-8',length=len(raw))
             return self.wfile.write(raw)
+        if p=='/api/youtube/channel' or re.fullmatch(r'/api/youtube/jobs/[a-f0-9]+',p):
+            if not self._local_youtube(): return self._json({'error':'Acesso local obrigatório.'},403)
+            return self._json({'channel':youtube_upload.connected()} if p.endswith('/channel') else {'uploads':youtube_upload.status(p.rsplit('/',1)[-1])})
         if p=='/api/health':
             return self._json({'ok':True,'service':'ShortForge Local'})
         if (p.startswith('/api/jobs/') or p.startswith('/downloads/')) and not self._worker_authorized():
@@ -179,8 +198,11 @@ class Handler(BaseHTTPRequestHandler):
                         raise ValueError('Posição da facecam inválida.')
                     jid=uuid.uuid4().hex[:12]
                     job=Job(jid,url,count,length,resolution,facecam,model,OUT/jid,manual_box=manual)
+                    if payload.get('youtube') is not None:
+                        if not self._local_youtube() or origin!=same_origin or payload.get('rights_confirmed') is not True: raise ValueError('Confirme publicação autorizada na interface local.')
+                        job.youtube=youtube_upload.options(payload['youtube'])
                     job.persist(); JOBS[jid]=job
-                thread=threading.Thread(target=execute,args=(job,retry_number),daemon=True,name='shortforge-'+job.id)
+                thread=threading.Thread(target=execute_with_upload,args=(job,retry_number),daemon=True,name='shortforge-'+job.id)
                 WORKERS[job.id]=thread
                 thread.start()
             return self._json({'job':job.asdict()},202 if retry_number else 201)
